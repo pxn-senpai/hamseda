@@ -1,0 +1,21 @@
+{
+  "name": "hamseda",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hamseda: a Discord-inspired voice client for TeamSpeak 3 (stage 2: Tauri shell + Rust core)",
+  "workspaces": [
+    "bridge",
+    "app"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n bridge,app -c yellow,cyan \"npm run start -w bridge\" \"npm run dev -w app\"",
+    "build": "npm run build -w app",
+    "typecheck": "npm run typecheck -w app",
+    "desktop": "tauri dev",
+    "desktop:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.6",
+    "concurrently": "^10.0.6"
+  }
+}

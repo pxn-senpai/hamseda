@@ -1,0 +1,61 @@
+# End-to-end test: runs a real TeamSpeak 3 server on the GitHub runner and connects
+# the Hamseda core to it. GitHub runners can use UDP freely, unlike the sandbox.
+# This is for testing only: the server is downloaded from TeamSpeak, not shipped with Hamseda.
+
+name: E2E against a local TeamSpeak server
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      TS_VERSION: "3.13.7"
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Download the TeamSpeak 3 server for testing
+        run: |
+          mkdir -p "$HOME/ts3"
+          URL="https://files.teamspeak-services.com/releases/server/${TS_VERSION}/teamspeak3-server_linux_amd64-${TS_VERSION}.tar.bz2"
+          echo "Downloading $URL"
+          curl -fL --retry 3 -o ts3.tar.bz2 "$URL"
+          tar -xjf ts3.tar.bz2 -C "$HOME/ts3" --strip-components=1
+          ls "$HOME/ts3"
+
+      - name: Start the TeamSpeak server
+        run: |
+          cd "$HOME/ts3"
+          nohup ./ts3server license_accepted=1 > ts3.log 2>&1 &
+          sleep 8
+          cat ts3.log | head -40
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run the core unit tests
+        working-directory: core
+        run: cargo test --lib
+
+      - name: Connect the core to the local server
+        working-directory: core
+        run: |
+          cargo build --bin hamseda-probe
+          timeout 60 ./target/debug/hamseda-probe 127.0.0.1 9987 CIProbe > probe.out 2> probe.err || true
+          echo "--- stderr (status) ---"
+          grep -E "^\[status\]|Connecting failed|\[notice\]" probe.err | head -30 || true
+          echo "--- stdout (channel tree) ---"
+          cat probe.out | head -60 || true
+          grep -q "Connected" probe.err || { echo "FAILED: not connected"; exit 1; }
+          echo "PASSED: connected to the local TeamSpeak server"
+
+      - name: Keep the TeamSpeak log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ts3-server-log
+          path: ~/ts3/ts3.log

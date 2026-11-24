@@ -1,0 +1,70 @@
+/* Design tokens. Everything visual that changes between dark and light lives here. */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg-rail: #0f1117;
+  --bg-pane: #171a22;
+  --bg-chat: #1d212b;
+  --bg-members: #171a22;
+  --bg-panel: #12151c;
+  --bg-input: #262b38;
+  --bg-hover: rgb(255 255 255 / 0.06);
+  --bg-active: rgb(255 255 255 / 0.11);
+  --bg-modal: #1d212b;
+  --border: rgb(255 255 255 / 0.08);
+  --text: #e8eaf0;
+  --text-muted: #9aa1b2;
+  --text-faint: #6c7387;
+  --accent: #4f7cff;
+  --accent-text: #ffffff;
+  --accent-soft: rgb(79 124 255 / 0.18);
+  --good: #3ccf91;
+  --warn: #f0b34a;
+  --bad: #f0605d;
+  --shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg-rail: #e3e6ee;
+  --bg-pane: #f1f3f8;
+  --bg-chat: #ffffff;
+  --bg-members: #f1f3f8;
+  --bg-panel: #e8ebf2;
+  --bg-input: #eceff5;
+  --bg-hover: rgb(0 0 0 / 0.05);
+  --bg-active: rgb(0 0 0 / 0.09);
+  --bg-modal: #ffffff;
+  --border: rgb(0 0 0 / 0.1);
+  --text: #1b1f2a;
+  --text-muted: #566074;
+  --text-faint: #8791a5;
+  --accent: #3a63e6;
+  --accent-text: #ffffff;
+  --accent-soft: rgb(58 99 230 / 0.14);
+  --good: #17a673;
+  --warn: #c98a12;
+  --bad: #d63f3c;
+  --shadow: 0 12px 40px rgb(20 30 60 / 0.2);
+}
+
+:root {
+  --font: 'Inter Variable', 'Vazirmatn', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius: 10px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Persian text looks better in Vazirmatn; Latin text keeps Inter. */
+:root[lang='fa'] {
+  --font: 'Vazirmatn', 'Inter Variable', system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

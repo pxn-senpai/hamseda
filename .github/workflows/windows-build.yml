@@ -1,0 +1,35 @@
+name: Build Windows app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install JavaScript packages
+        run: npm install
+
+      - name: Build the Windows installer
+        run: npm run desktop:build
+
+      - name: Upload the installer and the plain .exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: hamseda-windows
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/hamseda-app.exe
