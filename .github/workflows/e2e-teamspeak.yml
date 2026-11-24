@@ -41,8 +41,8 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install audio headers needed by cpal and alsa-sys
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Install audio libraries (ALSA for cpal, libopus for audiopus)
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libopus-dev
 
       - name: Run the core unit tests
         working-directory: core
