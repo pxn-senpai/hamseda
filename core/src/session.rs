@@ -129,6 +129,9 @@ async fn run(
 	};
 
 	let mut connected = false;
+	// False once every UI handle is gone. The connection then keeps running, and only
+	// an explicit Disconnect action (or the connect deadline) ends it.
+	let mut actions_open = true;
 	// tsclientlib 0.2 can panic inside its own connect task (it then never reports
 	// anything), so give up if the server has not sent its book within the deadline.
 	let connect_deadline = tokio::time::sleep(CONNECT_TIMEOUT);
@@ -147,7 +150,7 @@ async fn run(
 					None => Step::Closed,
 				}
 			} => step,
-			action = actions.recv() => Step::Action(action),
+			action = actions.recv(), if actions_open => Step::Action(action),
 			frame = next_frame(&mut engine) => Step::Frame(frame),
 			_ = &mut connect_deadline, if !connected => Step::TimedOut,
 		};
@@ -223,10 +226,12 @@ async fn run(
 			Step::TimedOut => return Err(anyhow!("timed out waiting for the server")),
 			Step::Failed(msg) => return Err(anyhow!("connection error: {msg}")),
 			Step::Closed => return Err(anyhow!("connection closed by the server")),
-			Step::Action(None) | Step::Action(Some(Action::Disconnect)) => {
+			Step::Action(None) => actions_open = false,
+			Step::Action(Some(Action::Disconnect)) => {
 				con.disconnect(DisconnectOptions::new())?;
-				// Let the disconnect packet go out before the task ends.
-				con.events().for_each(|_| futures::future::ready(())).await;
+				// Let the disconnect packet go out before the task ends, but never wait long.
+				let flush = con.events().for_each(|_| futures::future::ready(()));
+				let _ = tokio::time::timeout(std::time::Duration::from_secs(2), flush).await;
 				return Ok(());
 			}
 			Step::Action(Some(Action::SetAudioDevices { input, output })) => {

@@ -27,7 +27,8 @@ async fn main() -> anyhow::Result<()> {
 	let password = args.get(3).cloned();
 
 	let (tx, mut rx) = mpsc::unbounded_channel();
-	spawn_session("probe".into(), address, port, nickname, password, tx);
+	// Keep the handle alive: dropping it would look like the UI went away.
+	let _session = spawn_session("probe".into(), address, port, nickname, password, tx);
 
 	while let Some(event) = rx.recv().await {
 		match event {
