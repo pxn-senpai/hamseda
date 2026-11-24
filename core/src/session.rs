@@ -18,6 +18,9 @@ use crate::audio::{self, Playback, Sender, TransmitMode};
 use crate::protocol::{Action, ChatFrom, ChatMessage, ChatTarget, ConnState, Event, TransmitConfig};
 use crate::snapshot::build_snapshot;
 
+/// How long to wait for the server's first book before giving up.
+const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// Voice activation level used until the UI chooses one.
 const DEFAULT_VOICE_THRESHOLD_DB: f32 = -45.0;
 
@@ -46,7 +49,20 @@ pub fn spawn_session(
 	let (action_tx, action_rx) = mpsc::unbounded_channel();
 	tokio::spawn(async move {
 		send_status(&events, &conn_id, ConnState::Connecting, None);
-		match run(&conn_id, &address, port, &nickname, password, &events, action_rx).await {
+		// Run the connection in its own task. tsclientlib can panic while connecting,
+		// and a panic would otherwise end this task without any status for the UI.
+		let inner = tokio::spawn({
+			let events = events.clone();
+			let conn_id = conn_id.clone();
+			async move {
+				run(&conn_id, &address, port, &nickname, password, &events, action_rx).await
+			}
+		});
+		let result = match inner.await {
+			Ok(result) => result,
+			Err(join_err) => Err(anyhow!("internal error: {join_err}")),
+		};
+		match result {
 			Ok(()) => send_status(&events, &conn_id, ConnState::Disconnected, None),
 			Err(err) => send_status(&events, &conn_id, ConnState::Error, Some(friendly(&err))),
 		}
@@ -113,6 +129,10 @@ async fn run(
 	};
 
 	let mut connected = false;
+	// tsclientlib 0.2 can panic inside its own connect task (it then never reports
+	// anything), so give up if the server has not sent its book within the deadline.
+	let connect_deadline = tokio::time::sleep(CONNECT_TIMEOUT);
+	tokio::pin!(connect_deadline);
 	loop {
 		// Wait for either the next connection event or the next UI action.
 		// The borrow of `con` ends inside this statement, so the arms below may use it.
@@ -129,6 +149,7 @@ async fn run(
 			} => step,
 			action = actions.recv() => Step::Action(action),
 			frame = next_frame(&mut engine) => Step::Frame(frame),
+			_ = &mut connect_deadline, if !connected => Step::TimedOut,
 		};
 
 		match step {
@@ -196,6 +217,7 @@ async fn run(
 				send_notice(events, conn_id, "audio_stopped", "The microphone stopped.".into());
 			}
 			Step::Other => {}
+			Step::TimedOut => return Err(anyhow!("timed out waiting for the server")),
 			Step::Failed(msg) => return Err(anyhow!("connection error: {msg}")),
 			Step::Closed => return Err(anyhow!("connection closed by the server")),
 			Step::Action(None) | Step::Action(Some(Action::Disconnect)) => {
@@ -241,6 +263,7 @@ enum Step {
 	Frame(Option<Vec<f32>>),
 	Failed(String),
 	Closed,
+	TimedOut,
 	Action(Option<Action>),
 }
 

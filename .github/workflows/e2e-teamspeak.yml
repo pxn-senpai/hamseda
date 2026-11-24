@@ -31,8 +31,12 @@ jobs:
         run: |
           cd "$HOME/ts3"
           nohup ./ts3server license_accepted=1 > ts3.log 2>&1 &
-          sleep 8
-          cat ts3.log | head -40
+          # Wait until the voice port (UDP 9987) is open, up to 60 seconds.
+          for i in $(seq 1 30); do
+            if ss -uln | grep -q ':9987 '; then echo "voice port is open"; break; fi
+            sleep 2
+          done
+          ss -uln | grep -E ':9987|:10011' || echo "WARNING: voice port 9987 is not open yet"
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -48,17 +52,23 @@ jobs:
         working-directory: core
         run: |
           cargo build --bin hamseda-probe
-          timeout 60 ./target/debug/hamseda-probe 127.0.0.1 9987 CIProbe > probe.out 2> probe.err || true
-          echo "--- stderr (status) ---"
-          grep -E "^\[status\]|Connecting failed|\[notice\]" probe.err | head -30 || true
+          timeout 90 ./target/debug/hamseda-probe 127.0.0.1 9987 CIProbe > probe.out 2> probe.err || true
+          echo "--- status lines ---"
+          grep -E "^\[(status|notice|probe)\]" probe.err || true
+          echo "--- full probe stderr (last 150 lines) ---"
+          tail -n 150 probe.err || true
           echo "--- stdout (channel tree) ---"
-          cat probe.out | head -60 || true
-          grep -q "Connected" probe.err || { echo "FAILED: not connected"; exit 1; }
+          head -n 60 probe.out || true
+          grep -q "\[status\] Connected" probe.err || { echo "FAILED: not connected"; exit 1; }
           echo "PASSED: connected to the local TeamSpeak server"
 
-      - name: Keep the TeamSpeak log
+      - name: Keep the TeamSpeak log and the probe output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ts3-server-log
-          path: ~/ts3/ts3.log
+          name: e2e-logs
+          path: |
+            ~/ts3/ts3.log
+            core/probe.err
+            core/probe.out
+          if-no-files-found: warn

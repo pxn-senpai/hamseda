@@ -43,6 +43,7 @@ async fn main() -> anyhow::Result<()> {
 			}
 		}
 	}
+	eprintln!("[probe] session ended");
 	Ok(())
 }
 
