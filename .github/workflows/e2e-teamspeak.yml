@@ -59,6 +59,8 @@ jobs:
           tail -n 150 probe.err || true
           echo "--- stdout (channel tree) ---"
           head -n 60 probe.out || true
+          echo "--- TeamSpeak server log (last 120 lines) ---"
+          tail -n 120 ~/ts3/ts3.log || true
           grep -q "\[status\] Connected" probe.err || { echo "FAILED: not connected"; exit 1; }
           echo "PASSED: connected to the local TeamSpeak server"
 

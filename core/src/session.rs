@@ -152,6 +152,9 @@ async fn run(
 			_ = &mut connect_deadline, if !connected => Step::TimedOut,
 		};
 
+		if let Some(label) = debug_label(&step) {
+			eprintln!("[debug] {label}");
+		}
 		match step {
 			Step::Book => {
 				if !connected {
@@ -265,6 +268,20 @@ enum Step {
 	Closed,
 	TimedOut,
 	Action(Option<Action>),
+}
+
+/// Temporary trace for debugging the first connection; prints to stderr.
+fn debug_label(step: &Step) -> Option<String> {
+	match step {
+		Step::Book => Some("book received".into()),
+		Step::Message(_) => Some("text message".into()),
+		Step::Other => Some("other connection event".into()),
+		Step::Failed(msg) => Some(format!("connection failed: {msg}")),
+		Step::Closed => Some("connection closed".into()),
+		Step::TimedOut => Some("connect deadline reached".into()),
+		Step::Action(_) => Some("ui action".into()),
+		Step::Audio(_) | Step::Frame(_) => None,
+	}
 }
 
 static MESSAGE_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
