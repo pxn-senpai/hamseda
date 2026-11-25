@@ -59,12 +59,14 @@ export function MemberList({ clients, groups }: Props) {
             {s.members.map(({ client: c, color }) => (
               <li key={c.id} className={c.away ? 'away' : ''}>
                 <Avatar name={c.nickname} size={32} talking={c.talking} dim={c.away} />
-                <span className="m-name" style={color ? { color } : undefined}>
-                  {c.nickname}
+                <span className="m-main">
+                  <span className="m-name" style={color ? { color } : undefined}>
+                    {c.nickname}
+                  </span>
+                  {c.inputMuted && <MicOff size={14} aria-label={t('mute')} />}
+                  {c.outputMuted && <Headphones size={14} aria-label={t('deafen')} />}
+                  {c.away && <MoonStar size={14} aria-label={t('away')} />}
                 </span>
-                {c.inputMuted && <MicOff size={14} aria-label={t('mute')} />}
-                {c.outputMuted && <Headphones size={14} aria-label={t('deafen')} />}
-                {c.away && <MoonStar size={14} aria-label={t('away')} />}
               </li>
             ))}
           </ul>

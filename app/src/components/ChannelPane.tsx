@@ -189,10 +189,12 @@ export function ChannelPane({
                       {users.map((u) => (
                         <li key={u.id} className={u.away ? 'away' : ''}>
                           <Avatar name={u.nickname} size={22} talking={u.talking} dim={u.away} />
-                          <span className="u-name">{u.nickname}</span>
-                          {u.inputMuted && <MicOff size={13} aria-label={t('mute')} />}
-                          {u.outputMuted && <Headphones size={13} aria-label={t('deafen')} />}
-                          {u.away && <MoonStar size={13} aria-label={t('away')} />}
+                          <span className="u-main">
+                            <span className="u-name">{u.nickname}</span>
+                            {u.inputMuted && <MicOff size={13} aria-label={t('mute')} />}
+                            {u.outputMuted && <Headphones size={13} aria-label={t('deafen')} />}
+                            {u.away && <MoonStar size={13} aria-label={t('away')} />}
+                          </span>
                         </li>
                       ))}
                     </ul>

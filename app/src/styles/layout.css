@@ -419,8 +419,15 @@ h1, h2, h3, h4, p {
 .channel-users li.away {
   opacity: 0.6;
 }
-.u-name {
+.u-main {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.u-name {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -754,8 +761,15 @@ h1, h2, h3, h4, p {
 .members li.away {
   opacity: 0.6;
 }
-.m-name {
+.m-main {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.m-name {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
