@@ -2,10 +2,14 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { BridgeEvent, ServerConfig, ServerState } from './types';
+import { createDemoSession } from '../../bridge/src/demo.mjs';
+import type { DemoSession } from '../../bridge/src/demo.mjs';
 
 const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL ?? 'ws://127.0.0.1:8787';
 /** True inside the desktop app (Tauri). In a plain browser the Node bridge is used instead. */
 export const IS_DESKTOP = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+/** Static demo build (GitHub Pages): no bridge, the demo servers run inside the page. */
+export const STATIC_DEMO = import.meta.env.VITE_STATIC_DEMO === '1';
 const DESKTOP_EVENT = 'hamseda://event';
 const STORAGE_KEY = 'hamseda.servers';
 
@@ -166,6 +170,11 @@ export function useBridge(onNotice: (message: string) => void) {
       };
     }
 
+    if (STATIC_DEMO) {
+      setBridgeUp(true);
+      return;
+    }
+
     let stopped = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
 
@@ -213,12 +222,45 @@ export function useBridge(onNotice: (message: string) => void) {
       );
       return true;
     }
+    if (STATIC_DEMO) return staticSend(msg);
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(msg));
       return true;
     }
     return false;
+  }, []);
+
+  // Static demo: the same message flow as the Node bridge, but inside the page.
+  const demoRef = useRef<Map<string, DemoSession>>(new Map());
+  const staticSend = useCallback((msg: Record<string, unknown>) => {
+    const emit = (event: Record<string, unknown>) => {
+      const typed = event as unknown as BridgeEvent;
+      if (typed.type === 'notice') noticeRef.current(typed.message);
+      dispatch({ type: 'event', event: typed });
+    };
+    const connId = String(msg.connId ?? '');
+    if (msg.type === 'connect') {
+      if (msg.mode !== 'demo') {
+        emit({ type: 'status', connId, state: 'error', message: 'desktop-unsupported' });
+        return true;
+      }
+      demoRef.current.get(connId)?.close();
+      emit({ type: 'status', connId, state: 'connecting' });
+      const session = createDemoSession(msg, emit);
+      demoRef.current.set(connId, session);
+      return true;
+    }
+    if (msg.type === 'disconnect') {
+      demoRef.current.get(connId)?.close();
+      demoRef.current.delete(connId);
+      emit({ type: 'status', connId, state: 'disconnected' });
+      return true;
+    }
+    const session = demoRef.current.get(connId);
+    if (!session) return false;
+    session.handle(msg);
+    return true;
   }, []);
 
   const connect = useCallback(
