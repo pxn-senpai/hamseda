@@ -11,7 +11,7 @@ use std::sync::Mutex;
 
 use hamseda_core::protocol::{Action, Event};
 use hamseda_core::session::{spawn_session, SessionHandle};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::sync::mpsc;
 
 /// Name of the event the UI listens to.
@@ -35,6 +35,16 @@ async fn connect_server(
 	nickname: String,
 	password: Option<String>,
 ) -> Result<(), String> {
+	// One identity per server, kept in the app's data folder, so the server knows this user again.
+	let data_dir = app.path().app_data_dir().map_err(|e| format!("no app data folder: {e}"))?;
+	let file_name: String = format!("{address}_{port}")
+		.chars()
+		.map(|c| if c.is_ascii_alphanumeric() || c == '.' || c == '-' { c } else { '_' })
+		.collect();
+	let identity_path = data_dir.join("identities").join(format!("{file_name}.json"));
+	let identity = hamseda_core::identity::load_or_create(&identity_path)
+		.map_err(|e| format!("{e:#}"))?;
+
 	let (tx, mut rx) = mpsc::unbounded_channel::<Event>();
 
 	// Forward every core event to the window.
@@ -45,7 +55,7 @@ async fn connect_server(
 		}
 	});
 
-	let handle = spawn_session(conn_id.clone(), address, port, nickname, password, tx);
+	let handle = spawn_session(conn_id.clone(), address, port, nickname, password, identity, tx);
 	state
 		.sessions
 		.lock()

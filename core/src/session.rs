@@ -49,6 +49,7 @@ pub fn spawn_session(
 	port: u16,
 	nickname: String,
 	password: Option<String>,
+	identity: Identity,
 	events: mpsc::UnboundedSender<Event>,
 ) -> SessionHandle {
 	let (action_tx, action_rx) = mpsc::unbounded_channel();
@@ -65,9 +66,10 @@ pub fn spawn_session(
 				let address = address.clone();
 				let nickname = nickname.clone();
 				let password = password.clone();
+				let identity = identity.clone();
 				let actions = actions.clone();
 				async move {
-					run(&conn_id, &address, port, &nickname, password, &events, actions).await
+					run(&conn_id, &address, port, &nickname, password, identity, &events, actions).await
 				}
 			});
 			let result = match inner.await {
@@ -132,15 +134,12 @@ async fn run(
 	port: u16,
 	nickname: &str,
 	password: Option<String>,
+	identity: Identity,
 	events: &mpsc::UnboundedSender<Event>,
 	actions: Arc<AsyncMutex<mpsc::UnboundedReceiver<Action>>>,
 ) -> Result<()> {
 	// Holding the lock for this attempt only: it is released when the attempt ends or panics.
 	let mut actions = actions.lock_owned().await;
-	// A fresh identity per connection for now. Stage 2b will store one per bookmark
-	// so the server recognises the user again.
-	let identity = Identity::create();
-
 	let mut builder = Connection::build(format!("{address}:{port}"))
 		.identity(identity)
 		.name(nickname.to_owned());

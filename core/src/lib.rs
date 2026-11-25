@@ -5,6 +5,7 @@
 //! when the Node bridge is replaced by this crate.
 
 pub mod audio;
+pub mod identity;
 pub mod protocol;
 pub mod snapshot;
 pub mod session;
