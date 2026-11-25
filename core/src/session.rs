@@ -6,7 +6,7 @@
 
 use anyhow::{anyhow, Context, Result};
 use futures::StreamExt;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex as AsyncMutex};
 use tsclientlib::prelude::{M2BClientMoveExt, M2BClientUpdateExt};
 use tsclientlib::{ChannelId, ClientId, Connection, DisconnectOptions, Identity, InMessage, MessageTarget, OutCommandExt, StreamItem, TextMessageTargetMode};
 
@@ -17,6 +17,11 @@ use tsproto_packets::packets::InAudioBuf;
 use crate::audio::{self, Playback, Sender, TransmitMode};
 use crate::protocol::{Action, ChatFrom, ChatMessage, ChatTarget, ConnState, Event, TransmitConfig};
 use crate::snapshot::build_snapshot;
+
+/// How many times a connection attempt is tried when the library fails before connecting.
+const CONNECT_ATTEMPTS: u32 = 3;
+/// Pause between attempts.
+const RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// How long to wait for the server's first book before giving up.
 const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
@@ -47,24 +52,47 @@ pub fn spawn_session(
 	events: mpsc::UnboundedSender<Event>,
 ) -> SessionHandle {
 	let (action_tx, action_rx) = mpsc::unbounded_channel();
+	// The action receiver is shared with each attempt, so a retry keeps the same UI actions.
+	let actions = Arc::new(AsyncMutex::new(action_rx));
 	tokio::spawn(async move {
-		send_status(&events, &conn_id, ConnState::Connecting, None);
-		// Run the connection in its own task. tsclientlib can panic while connecting,
-		// and a panic would otherwise end this task without any status for the UI.
-		let inner = tokio::spawn({
-			let events = events.clone();
-			let conn_id = conn_id.clone();
-			async move {
-				run(&conn_id, &address, port, &nickname, password, &events, action_rx).await
+		for attempt in 1..=CONNECT_ATTEMPTS {
+			send_status(&events, &conn_id, ConnState::Connecting, None);
+			// Run the attempt in its own task. tsclientlib can panic while connecting, and a
+			// panic would otherwise end this task without any status for the UI.
+			let inner = tokio::spawn({
+				let events = events.clone();
+				let conn_id = conn_id.clone();
+				let address = address.clone();
+				let nickname = nickname.clone();
+				let password = password.clone();
+				let actions = actions.clone();
+				async move {
+					run(&conn_id, &address, port, &nickname, password, &events, actions).await
+				}
+			});
+			let result = match inner.await {
+				Ok(result) => result,
+				Err(join_err) => Err(anyhow!("internal error: {join_err}")),
+			};
+			match result {
+				Ok(()) => {
+					send_status(&events, &conn_id, ConnState::Disconnected, None);
+					return;
+				}
+				Err(err) => {
+					// Only the failures that come from the library's connect step are retried.
+					let msg = format!("{err:#}").to_ascii_lowercase();
+					let transient = ["timed out", "timeout", "not acked", "internal error"]
+						.iter()
+						.any(|pat| msg.contains(pat));
+					if transient && attempt < CONNECT_ATTEMPTS {
+						tokio::time::sleep(RETRY_DELAY).await;
+						continue;
+					}
+					send_status(&events, &conn_id, ConnState::Error, Some(friendly(&err)));
+					return;
+				}
 			}
-		});
-		let result = match inner.await {
-			Ok(result) => result,
-			Err(join_err) => Err(anyhow!("internal error: {join_err}")),
-		};
-		match result {
-			Ok(()) => send_status(&events, &conn_id, ConnState::Disconnected, None),
-			Err(err) => send_status(&events, &conn_id, ConnState::Error, Some(friendly(&err))),
 		}
 	});
 	SessionHandle { actions: action_tx }
@@ -98,8 +126,10 @@ async fn run(
 	nickname: &str,
 	password: Option<String>,
 	events: &mpsc::UnboundedSender<Event>,
-	mut actions: mpsc::UnboundedReceiver<Action>,
+	actions: Arc<AsyncMutex<mpsc::UnboundedReceiver<Action>>>,
 ) -> Result<()> {
+	// Holding the lock for this attempt only: it is released when the attempt ends or panics.
+	let mut actions = actions.lock_owned().await;
 	// A fresh identity per connection for now. Stage 2b will store one per bookmark
 	// so the server recognises the user again.
 	let identity = Identity::create();
