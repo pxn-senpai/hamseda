@@ -32,9 +32,17 @@ export function ConnectDialog({ initial, defaultMode = 'demo', onSubmit, onClose
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const portNum = Number(port);
+    // Accept "host:port" in the address box. The port written there wins over the port box.
+    let host = address.trim();
+    let portText = port;
+    const match = /^([^:\s]+):(\d{1,5})$/.exec(host);
+    if (match) {
+      host = match[1];
+      portText = match[2];
+    }
+    const portNum = Number(portText);
     const queryPortNum = Number(queryPort);
-    if (!address.trim() || !nickname.trim()) return setError('⚠ ' + t('address') + ' / ' + t('nickname'));
+    if (!host || !nickname.trim()) return setError('⚠ ' + t('address') + ' / ' + t('nickname'));
     if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535)
       return setError('⚠ ' + t('port') + ' (1–65535)');
     if (!Number.isInteger(queryPortNum) || queryPortNum < 1 || queryPortNum > 65535)
@@ -44,7 +52,7 @@ export function ConnectDialog({ initial, defaultMode = 'demo', onSubmit, onClose
       id: initial?.id ?? crypto.randomUUID(),
       mode,
       name: name.trim() || address.trim(),
-      address: address.trim(),
+      address: host,
       port: portNum,
       nickname: nickname.trim(),
       password: password || undefined,
