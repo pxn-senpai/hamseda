@@ -1,0 +1,44 @@
+# Manual check: tries to connect the core to any TeamSpeak server from a GitHub runner
+# and prints what happened. Run it from the Actions tab with "Run workflow".
+
+name: Probe a remote TeamSpeak server
+
+on:
+  workflow_dispatch:
+    inputs:
+      address:
+        description: "Server address, for example 46.38.138.68"
+        required: true
+      port:
+        description: "Voice port, for example 9987"
+        required: true
+        default: "9987"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install audio libraries (ALSA for cpal, libopus for audiopus)
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libopus-dev
+
+      - name: Connect to the server
+        working-directory: core
+        env:
+          ADDRESS: ${{ inputs.address }}
+          PORT: ${{ inputs.port }}
+        run: |
+          cargo build --bin hamseda-probe
+          timeout 90 ./target/debug/hamseda-probe "$ADDRESS" "$PORT" RemoteProbe > probe.out 2> probe.err || true
+          echo "--- status and notices ---"
+          grep -E "^\[(status|notice|probe)\]" probe.err || true
+          echo "--- last 60 lines of the connection log ---"
+          tail -n 60 probe.err || true
+          echo "--- channel tree ---"
+          head -n 60 probe.out || true
+          grep -q "\[status\] Connected" probe.err && echo "RESULT: connected" || { echo "RESULT: not connected"; exit 1; }
