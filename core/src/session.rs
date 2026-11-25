@@ -89,7 +89,14 @@ pub fn spawn_session(
 						tokio::time::sleep(RETRY_DELAY).await;
 						continue;
 					}
-					send_status(&events, &conn_id, ConnState::Error, Some(friendly(&err)));
+					// Show the plain explanation and the technical detail, so the cause can be reported.
+					let detail = format!("{err:#}");
+					send_status(
+						&events,
+						&conn_id,
+						ConnState::Error,
+						Some(format!("{}\n\nTechnical detail: {detail}", friendly(&err))),
+					);
 					return;
 				}
 			}
