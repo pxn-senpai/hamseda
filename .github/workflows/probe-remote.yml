@@ -38,7 +38,7 @@ jobs:
           echo "--- status and notices ---"
           grep -E "^\[(status|notice|probe)\]" probe.err || true
           echo "--- avatar lines ---"
-          grep -E "^\[(avatar|dbg avatar)\]" probe.err | head -n 40 || echo "no avatar lines"
+          grep -E "^\[(avatar|dbg avatar|dbg msg|dbg other)\]" probe.err | cut -c1-400 | head -n 60 || echo "no avatar lines"
           echo "--- last 60 lines of the connection log ---"
           tail -n 60 probe.err || true
           echo "--- users seen in the last snapshot ---"
