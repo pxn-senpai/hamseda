@@ -10,6 +10,7 @@ import { MemberList } from './components/MemberList';
 import { UserPanel } from './components/UserPanel';
 import { ConnectDialog } from './components/ConnectDialog';
 import { SettingsDialog } from './components/SettingsDialog';
+import { useVoiceSounds } from './useVoiceSounds';
 
 type Dialog = { kind: 'connect'; editing?: ServerConfig } | { kind: 'settings' } | null;
 
@@ -25,6 +26,7 @@ export function App() {
   }, []);
 
   const { servers, bridgeUp, connect, disconnect, upsert, remove, send } = useBridge(showToast);
+  useVoiceSounds(servers);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<Record<string, number>>({});
   const [dialog, setDialog] = useState<Dialog>(null);
