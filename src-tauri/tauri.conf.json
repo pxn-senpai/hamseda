@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Hamseda",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "dev.hamseda.desktop",
   "build": {
     "beforeDevCommand": "npm --prefix app run dev",
@@ -38,5 +38,13 @@
     ],
     "shortDescription": "Hamseda voice client",
     "longDescription": "Hamseda: a Discord-style voice client for TeamSpeak 3 servers."
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkyQURDOUY2M0E3RkE1OTYKUldTV3BYODY5c210a2lxeExzOTV6SDVCY0JBZ2FiU2poUTRIaERCQU9mQ3pJc1V3NHRIQzNMSEYK",
+      "endpoints": [
+        "https://github.com/pxn-senpai/hamseda/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

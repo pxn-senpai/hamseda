@@ -88,6 +88,8 @@ fn send_action(state: State<'_, AppState>, conn_id: String, action: Action) -> R
 
 fn main() {
 	tauri::Builder::default()
+		.plugin(tauri_plugin_updater::Builder::new().build())
+		.plugin(tauri_plugin_process::init())
 		.manage(AppState::default())
 		.invoke_handler(tauri::generate_handler![connect_server, send_action, list_audio_devices])
 		.run(tauri::generate_context!())

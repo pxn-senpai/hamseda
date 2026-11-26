@@ -1,0 +1,49 @@
+# Release: runs when a tag like v0.2.0 is pushed. It builds the Windows installer, signs the
+# update files, and publishes them with latest.json. Installed copies of Hamseda read
+# latest.json to find and install the newest version.
+#
+# Needs one repository secret: TAURI_SIGNING_PRIVATE_KEY (the private updater key).
+# The optional TAURI_SIGNING_PRIVATE_KEY_PASSWORD is empty for this key.
+# The tag must match the version in src-tauri/tauri.conf.json (for example v0.2.0).
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install JavaScript packages
+        run: npm install
+
+      - name: Build, sign and publish the release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Hamseda ${{ github.ref_name }}"
+          releaseBody: "Windows installer. Installed copies of Hamseda can update themselves from Settings."
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true
+          args: --bundles nsis --config {"bundle":{"createUpdaterArtifacts":true}}

@@ -2,6 +2,12 @@
 // API, so no audio file is needed and no other app's sound is copied.
 
 let ctx: AudioContext | null = null;
+let enabled = true;
+
+/** Turned on or off from the settings screen. */
+export function setSoundsEnabled(on: boolean) {
+  enabled = on;
+}
 
 function audio(): AudioContext | null {
   try {
@@ -42,6 +48,7 @@ function note(c: AudioContext, freq: number, start: number, gain: number) {
 }
 
 function play(notes: number[], gain: number) {
+  if (!enabled) return;
   const c = audio();
   if (!c) return;
   notes.forEach((freq, i) => note(c, freq, i * 0.09, gain));

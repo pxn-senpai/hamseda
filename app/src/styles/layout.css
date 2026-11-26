@@ -1033,3 +1033,21 @@ kbd {
     display: none;
   }
 }
+
+/* Settings: checkbox row and the update row */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.update-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

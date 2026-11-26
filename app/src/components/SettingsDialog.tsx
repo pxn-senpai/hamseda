@@ -7,6 +7,7 @@ import { useSettings } from '../settings';
 import type { ThemeSetting, TransmitSetting, UserStatus } from '../settings';
 import type { Lang } from '../i18n';
 import { Modal } from './Modal';
+import { UpdateSection } from './UpdateSection';
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const {
@@ -23,6 +24,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     audioOutput,
     setAudioInput,
     setAudioOutput,
+    sounds,
+    setSounds,
   } = useSettings();
   const [devices, setDevices] = useState<AudioDevices>({ inputs: [], outputs: [] });
 
@@ -144,6 +147,14 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="field">
+          <span>{t('soundsLabel')}</span>
+          <label className="check-row">
+            <input type="checkbox" checked={sounds} onChange={(e) => setSounds(e.target.checked)} />
+            {t('soundsNote')}
+          </label>
+        </div>
+
+        <div className="field">
           <span>{t('shortcuts')}</span>
           <ul className="shortcuts">
             <li>
@@ -160,6 +171,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             </li>
           </ul>
         </div>
+        <UpdateSection />
       </div>
     </Modal>
   );

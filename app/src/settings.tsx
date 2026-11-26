@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { dictionaries } from './i18n';
+import { setSoundsEnabled } from './sounds';
 import type { Key, Lang } from './i18n';
 
 export type ThemeSetting = 'dark' | 'light' | 'system';
@@ -18,6 +19,9 @@ interface Settings {
   audioOutput: string;
   setAudioInput: (name: string) => void;
   setAudioOutput: (name: string) => void;
+  /** Join and leave sounds on or off. */
+  sounds: boolean;
+  setSounds: (on: boolean) => void;
   setLang: (l: Lang) => void;
   setTheme: (t: ThemeSetting) => void;
   setStatus: (s: UserStatus) => void;
@@ -63,6 +67,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [transmit, setTransmitState] = useState<TransmitSetting>(() =>
     load('hamseda.transmit', ['voice', 'ptt'], 'voice'),
   );
+  const [sounds, setSoundsState] = useState(() => load('hamseda.sounds', ['on', 'off'], 'on') === 'on');
   const [audioInput, setAudioInputState] = useState(() => loadText('hamseda.audioInput'));
   const [audioOutput, setAudioOutputState] = useState(() => loadText('hamseda.audioOutput'));
   const [systemDark, setSystemDark] = useState(
@@ -105,6 +110,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setTransmitState(m);
     save('hamseda.transmit', m);
   }, []);
+  const setSounds = useCallback((on: boolean) => {
+    setSoundsState(on);
+    setSoundsEnabled(on);
+    save('hamseda.sounds', on ? 'on' : 'off');
+  }, []);
+  useEffect(() => setSoundsEnabled(sounds), [sounds]);
   const setAudioInput = useCallback((name: string) => {
     setAudioInputState(name);
     save('hamseda.audioInput', name);
@@ -125,12 +136,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       audioOutput,
       setAudioInput,
       setAudioOutput,
+      sounds,
+      setSounds,
       setLang,
       setTheme,
       setStatus,
       t: (key) => dictionaries[lang][key],
     }),
-    [lang, theme, status, transmit, setTransmit, audioInput, audioOutput, setAudioInput, setAudioOutput, setLang, setTheme, setStatus],
+    [lang, theme, status, transmit, setTransmit, audioInput, audioOutput, setAudioInput, setAudioOutput, sounds, setSounds, setLang, setTheme, setStatus],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
