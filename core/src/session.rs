@@ -186,16 +186,10 @@ async fn run(
 			step = async {
 				match con.events().next().await {
 					Some(Ok(StreamItem::BookEvents(_))) => Step::Book,
-					Some(Ok(StreamItem::MessageEvent(msg))) => {
-						eprintln!("[dbg msg] {:?}", msg);
-						Step::Message(msg)
-					}
+					Some(Ok(StreamItem::MessageEvent(msg))) => Step::Message(msg),
 					Some(Ok(StreamItem::Audio(packet))) => Step::Audio(packet),
 					Some(Ok(StreamItem::FileDownload(handle, result))) => Step::Download(handle, result),
-					Some(Ok(other)) => {
-						eprintln!("[dbg other] {:?}", other);
-						Step::Other
-					}
+					Some(Ok(_)) => Step::Other,
 					Some(Err(e)) => Step::Failed(e.to_string()),
 					None => Step::Closed,
 				}
