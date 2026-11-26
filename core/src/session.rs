@@ -232,12 +232,14 @@ async fn run(
 					.collect();
 				for hash in wanted {
 					avatars_asked.insert(hash.clone());
-					match con.download_file(ChannelId(0), &format!("/avatar_{hash}"), None, None) {
-						Ok(handle) => {
-							eprintln!("[dbg avatar] requested {hash}");
-							avatar_downloads.insert(handle, hash);
+					for name in [hash.clone(), hash.to_uppercase()] {
+						match con.download_file(ChannelId(0), &format!("/avatar_{name}"), None, None) {
+							Ok(handle) => {
+								eprintln!("[dbg avatar] requested /avatar_{name}");
+								avatar_downloads.insert(handle, hash.clone());
+							}
+							Err(err) => eprintln!("[dbg avatar] request failed {name}: {err}"),
 						}
-						Err(err) => eprintln!("[dbg avatar] request failed {hash}: {err}"),
 					}
 				}
 			}
