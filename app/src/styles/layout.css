@@ -1051,3 +1051,15 @@ kbd {
   opacity: 0.6;
   cursor: default;
 }
+
+/* Settings: list of music bot names */
+.bot-names {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-input, var(--bg-hover));
+  color: inherit;
+}

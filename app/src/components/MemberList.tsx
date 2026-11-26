@@ -10,6 +10,13 @@ interface Props {
   groups: Group[];
 }
 
+/** Server query clients and the names the user marked as music bots. */
+function isBot(c: Client, botNames: string[]): boolean {
+  if (c.isQuery) return true;
+  const nick = c.nickname.trim().toLowerCase();
+  return botNames.some((n) => n.trim().toLowerCase() === nick);
+}
+
 interface Section {
   key: string;
   title: string;
@@ -17,7 +24,7 @@ interface Section {
 }
 
 export function MemberList({ clients, groups }: Props) {
-  const { t } = useSettings();
+  const { t, botNames } = useSettings();
 
   const sections = useMemo<Section[]>(() => {
     const sorted = [...groups].sort((a, b) => a.sortId - b.sortId);
@@ -25,7 +32,9 @@ export function MemberList({ clients, groups }: Props) {
 
     // Each person is listed once, under their most important role (like Discord's "hoisted" roles).
     const buckets = new Map<number | 'none', Section>();
-    for (const client of clients) {
+    const people = clients.filter((c) => !isBot(c, botNames));
+    const bots = clients.filter((c) => isBot(c, botNames));
+    for (const client of people) {
       const best = client.groupIds
         .filter((id) => rank.has(id))
         .sort((a, b) => (rank.get(a) ?? 0) - (rank.get(b) ?? 0))[0];
@@ -45,8 +54,18 @@ export function MemberList({ clients, groups }: Props) {
       })
       .map(([, s]) => s);
     for (const s of list) s.members.sort((a, b) => a.client.nickname.localeCompare(b.client.nickname));
+    // Bots go in their own section at the bottom.
+    if (bots.length > 0) {
+      list.push({
+        key: 'bots',
+        title: t('botsLabel'),
+        members: bots
+          .sort((a, b) => a.nickname.localeCompare(b.nickname))
+          .map((client) => ({ client })),
+      });
+    }
     return list;
-  }, [clients, groups, t]);
+  }, [clients, groups, botNames, t]);
 
   return (
     <aside className="members" aria-label={t('members')}>

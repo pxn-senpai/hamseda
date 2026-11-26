@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use tsclientlib::data::{Channel as TsChannel, Client as TsClient, Connection, ServerGroup};
 use tsclientlib::{ChannelId, ClientId, ServerGroupId};
+use tsproto_types::ClientType;
 
 use crate::protocol::{Channel, Client, Group, ServerInfo, Snapshot};
 
@@ -93,6 +94,7 @@ fn to_client(c: &TsClient, own: ClientId) -> Client {
 		away_message: c.away_message.clone().filter(|m| !m.is_empty()),
 		group_ids: c.server_groups.iter().map(|g| g.0).collect(),
 		is_self: c.id == own,
+		is_query: matches!(c.client_type, ClientType::Query { .. }),
 	}
 }
 

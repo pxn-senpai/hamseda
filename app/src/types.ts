@@ -26,6 +26,8 @@ export interface Client {
   awayMessage?: string;
   groupIds: number[];
   isSelf?: boolean;
+  /** ServerQuery client: always shown with the bots. */
+  isQuery?: boolean;
 }
 
 export interface Group {

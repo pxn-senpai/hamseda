@@ -26,7 +26,10 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     setAudioOutput,
     sounds,
     setSounds,
+    botNames,
+    setBotNames,
   } = useSettings();
+  const [botText, setBotText] = useState(botNames.join('\n'));
   const [devices, setDevices] = useState<AudioDevices>({ inputs: [], outputs: [] });
 
   useEffect(() => {
@@ -152,6 +155,21 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <input type="checkbox" checked={sounds} onChange={(e) => setSounds(e.target.checked)} />
             {t('soundsNote')}
           </label>
+        </div>
+
+        <div className="field">
+          <span>{t('botNamesLabel')}</span>
+          <textarea
+            className="bot-names"
+            dir="ltr"
+            rows={3}
+            value={botText}
+            onChange={(e) => setBotText(e.target.value)}
+            onBlur={() =>
+              setBotNames(botText.split('\n').map((x) => x.trim()).filter(Boolean))
+            }
+          />
+          <p className="hint">{t('botNamesNote')}</p>
         </div>
 
         <div className="field">

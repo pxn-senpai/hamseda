@@ -21,6 +21,9 @@ interface Settings {
   setAudioOutput: (name: string) => void;
   /** Join and leave sounds on or off. */
   sounds: boolean;
+  /** Nicknames of music bots (they connect like people, so they are listed here). */
+  botNames: string[];
+  setBotNames: (names: string[]) => void;
   setSounds: (on: boolean) => void;
   setLang: (l: Lang) => void;
   setTheme: (t: ThemeSetting) => void;
@@ -48,6 +51,15 @@ function loadText(key: string): string {
   }
 }
 
+function loadList(key: string): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(key) ?? '[]');
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 function save(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
@@ -68,6 +80,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     load('hamseda.transmit', ['voice', 'ptt'], 'voice'),
   );
   const [sounds, setSoundsState] = useState(() => load('hamseda.sounds', ['on', 'off'], 'on') === 'on');
+  const [botNames, setBotNamesState] = useState<string[]>(() => loadList('hamseda.botNames'));
   const [audioInput, setAudioInputState] = useState(() => loadText('hamseda.audioInput'));
   const [audioOutput, setAudioOutputState] = useState(() => loadText('hamseda.audioOutput'));
   const [systemDark, setSystemDark] = useState(
@@ -116,6 +129,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     save('hamseda.sounds', on ? 'on' : 'off');
   }, []);
   useEffect(() => setSoundsEnabled(sounds), [sounds]);
+  const setBotNames = useCallback((names: string[]) => {
+    setBotNamesState(names);
+    save('hamseda.botNames', JSON.stringify(names));
+  }, []);
   const setAudioInput = useCallback((name: string) => {
     setAudioInputState(name);
     save('hamseda.audioInput', name);
@@ -138,12 +155,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setAudioOutput,
       sounds,
       setSounds,
+      botNames,
+      setBotNames,
       setLang,
       setTheme,
       setStatus,
       t: (key) => dictionaries[lang][key],
     }),
-    [lang, theme, status, transmit, setTransmit, audioInput, audioOutput, setAudioInput, setAudioOutput, sounds, setSounds, setLang, setTheme, setStatus],
+    [lang, theme, status, transmit, setTransmit, audioInput, audioOutput, setAudioInput, setAudioOutput, sounds, setSounds, botNames, setBotNames, setLang, setTheme, setStatus],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

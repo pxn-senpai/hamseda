@@ -41,6 +41,8 @@ pub struct Client {
 	pub away_message: Option<String>,
 	pub group_ids: Vec<u64>,
 	pub is_self: bool,
+	/// ServerQuery client (a bot by definition).
+	pub is_query: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
