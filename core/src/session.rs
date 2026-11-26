@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex};
 
 use tsproto_packets::packets::InAudioBuf;
 
-use crate::audio::{self, Playback, Sender, TransmitMode};
+use crate::audio::{self, PacketSink, Playback, Sender, TransmitMode};
 use crate::protocol::{Action, ChatFrom, ChatMessage, ChatTarget, ConnState, Event, TransmitConfig};
 use crate::snapshot::build_snapshot;
 
@@ -32,6 +32,7 @@ const DEFAULT_VOICE_THRESHOLD_DB: f32 = -45.0;
 /// Microphone sender and speaker mixer for one connection.
 struct AudioState {
 	playback: Arc<Mutex<Playback>>,
+	sink: PacketSink,
 	sender: Sender,
 }
 
@@ -149,9 +150,11 @@ async fn run(
 	let mut con = builder.connect().context("could not start the connection")?;
 
 	// Audio is optional: without a usable microphone or speaker the text side still works.
-	let playback = Arc::new(Mutex::new(Playback::new()));
+	let (playback_obj, sink) = Playback::new();
+	let playback = Arc::new(Mutex::new(playback_obj));
 	let mut audio_state = AudioState {
 		playback: playback.clone(),
+		sink,
 		sender: Sender::new(TransmitMode::VoiceActivation {
 			threshold_db: DEFAULT_VOICE_THRESHOLD_DB,
 		})?,
@@ -235,9 +238,8 @@ async fn run(
 				}
 			}
 			Step::Audio(packet) => {
-				if let Ok(mut playback) = audio_state.playback.lock() {
-					playback.push(packet);
-				}
+				// Hand the packet to the speaker thread. Never blocks.
+				let _ = audio_state.sink.send(packet);
 			}
 			Step::Frame(Some(frame)) => {
 				// The microphone can deliver frames while the server is still answering.
@@ -355,6 +357,12 @@ fn apply(con: &mut Connection, audio: &mut AudioState, action: Action) -> Result
 			msg.send(con)?;
 		}
 		Action::SetMuted { input_muted, output_muted } => {
+			// Deafen also silences what we hear here, not only what the server sends us.
+			if let Some(v) = output_muted {
+				if let Ok(mut p) = audio.playback.lock() {
+					p.muted = v;
+				}
+			}
 			let state = con.get_state()?;
 			let mut update = state.client_update();
 			if let Some(v) = input_muted {

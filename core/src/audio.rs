@@ -8,7 +8,7 @@ use std::sync::{mpsc as std_mpsc, Arc, Mutex};
 
 use anyhow::{anyhow, Result};
 use audiopus::coder::Encoder as OpusEncoder;
-use audiopus::{Application, Channels, SampleRate};
+use audiopus::{Application, Bitrate, Channels, SampleRate};
 use tokio::sync::mpsc;
 use tsclientlib::audio::AudioHandler;
 use tsproto_packets::packets::InAudioBuf;
@@ -39,8 +39,15 @@ pub struct Encoder {
 
 impl Encoder {
 	pub fn new() -> Result<Self> {
-		let inner = OpusEncoder::new(SampleRate::Hz48000, Channels::Mono, Application::Voip)
+		let mut inner = OpusEncoder::new(SampleRate::Hz48000, Channels::Mono, Application::Voip)
 			.map_err(|e| anyhow!("could not start the Opus encoder: {e}"))?;
+		// Clear speech at a modest bitrate, and tuned for networks that lose some packets.
+		inner
+			.set_bitrate(Bitrate::BitsPerSecond(32_000))
+			.map_err(|e| anyhow!("could not set the Opus bitrate: {e}"))?;
+		inner
+			.set_packet_loss_perc(10)
+			.map_err(|e| anyhow!("could not set the Opus loss tolerance: {e}"))?;
 		Ok(Self { inner })
 	}
 
@@ -145,43 +152,45 @@ impl Sender {
 	}
 }
 
-/// Decodes and mixes the voices we receive. Shared between the connection task (which
-/// pushes packets) and the playback thread (which pulls samples).
+/// Where the connection sends incoming voice packets. Sending never blocks the
+/// connection, and the speaker decodes them in its own thread.
+pub type PacketSink = std::sync::mpsc::Sender<InAudioBuf>;
+
+/// Decodes and mixes the voices we receive. Only the speaker thread touches it, so the
+/// connection task never waits for the audio thread (and the other way round).
 pub struct Playback {
 	handler: AudioHandler<u16>,
+	inbox: std::sync::mpsc::Receiver<InAudioBuf>,
 	/// When true we are deafened: nothing is played.
 	pub muted: bool,
 }
 
 impl Playback {
-	pub fn new() -> Self {
-		Self {
+	/// Returns the playback object for the speaker, and the sink the connection pushes into.
+	pub fn new() -> (Self, PacketSink) {
+		let (tx, rx) = std::sync::mpsc::channel();
+		let playback = Self {
 			handler: AudioHandler::new(slog::Logger::root(slog::Discard, slog::o!())),
+			inbox: rx,
 			muted: false,
-		}
-	}
-
-	/// Queues one incoming voice packet. Packets from unknown codecs are ignored.
-	pub fn push(&mut self, packet: InAudioBuf) {
-		let from = match packet.data().data() {
-			AudioData::S2C { from, .. } | AudioData::S2CWhisper { from, .. } => *from,
-			_ => return,
 		};
-		let _ = self.handler.handle_packet(from, packet);
+		(playback, tx)
 	}
 
-	/// Fills `out` (interleaved stereo, 48 kHz). Silence when deafened.
+	/// Decodes the packets queued so far, then fills `out` (interleaved stereo, 48 kHz).
+	/// Silence when deafened.
 	pub fn fill(&mut self, out: &mut [f32]) {
+		while let Ok(packet) = self.inbox.try_recv() {
+			let from = match packet.data().data() {
+				AudioData::S2C { from, .. } | AudioData::S2CWhisper { from, .. } => *from,
+				_ => continue,
+			};
+			let _ = self.handler.handle_packet(from, packet);
+		}
 		out.iter_mut().for_each(|s| *s = 0.0);
 		if !self.muted {
 			self.handler.fill_buffer(out);
 		}
-	}
-}
-
-impl Default for Playback {
-	fn default() -> Self {
-		Self::new()
 	}
 }
 
