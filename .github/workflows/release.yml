@@ -40,11 +40,19 @@ jobs:
       - name: Install JavaScript packages
         run: npm install
 
+      - name: Clean the signing key (remove stray spaces and line breaks)
+        shell: bash
+        env:
+          RAW_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          KEY=$(printf '%s' "$RAW_KEY" | tr -d '\r\n[:space:]')
+          echo "::add-mask::$KEY"
+          echo "TAURI_SIGNING_PRIVATE_KEY=$KEY" >> "$GITHUB_ENV"
+
       - name: Build, sign and publish the release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
