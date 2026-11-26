@@ -61,11 +61,6 @@ function reducer(state: Servers, action: Action): Servers {
               ...(ev.state === 'connecting' ? { snapshot: undefined, messages: {} } : {}),
             },
           };
-        case 'avatar':
-          return {
-            ...state,
-            [ev.connId]: { ...s, avatars: { ...(s.avatars ?? {}), [ev.hash]: ev.dataUrl } },
-          };
         case 'snapshot': {
           const { type: _t, connId: _c, ...snapshot } = ev;
           return { ...state, [ev.connId]: { ...s, snapshot } };

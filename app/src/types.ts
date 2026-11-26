@@ -28,8 +28,6 @@ export interface Client {
   isSelf?: boolean;
   /** ServerQuery client: always shown with the bots. */
   isQuery?: boolean;
-  /** Profile picture hash; the picture itself comes in an avatar event. */
-  avatarHash?: string;
 }
 
 export interface Group {
@@ -80,8 +78,6 @@ export interface ServerState {
   message?: string;
   snapshot?: Snapshot;
   messages: Record<number, ChatMessage[]>; // by channel id
-  /** Profile pictures as data: URLs, by avatar hash. */
-  avatars?: Record<string, string>;
 }
 
 /** Messages the bridge sends to the UI. */
@@ -90,5 +86,4 @@ export type BridgeEvent =
   | ({ type: 'snapshot'; connId: string } & Snapshot)
   | { type: 'clientPatch'; connId: string; clientId: number; changes: Partial<Client> }
   | { type: 'message'; connId: string; channelId: number; message: ChatMessage }
-  | { type: 'notice'; connId: string; code: string; message: string }
-  | { type: 'avatar'; connId: string; hash: string; dataUrl: string };
+  | { type: 'notice'; connId: string; code: string; message: string };

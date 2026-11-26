@@ -1194,9 +1194,3 @@ kbd {
   gap: 6px;
   color: var(--text);
 }
-
-/* Profile pictures from the server */
-img.avatar {
-  object-fit: cover;
-  background: var(--bg-hover);
-}

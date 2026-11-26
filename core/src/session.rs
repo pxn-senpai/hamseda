@@ -8,9 +8,8 @@ use anyhow::{anyhow, Context, Result};
 use futures::StreamExt;
 use tokio::sync::{mpsc, Mutex as AsyncMutex};
 use tsclientlib::prelude::{M2BClientMoveExt, M2BClientUpdateExt};
-use tsclientlib::{ChannelId, ClientId, Connection, DisconnectOptions, FileDownloadResult, FiletransferHandle, Identity, InMessage, MessageTarget, OutCommandExt, StreamItem, TextMessageTargetMode};
+use tsclientlib::{ChannelId, ClientId, Connection, DisconnectOptions, Identity, InMessage, MessageTarget, OutCommandExt, StreamItem, TextMessageTargetMode};
 
-use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use tsproto_packets::packets::InAudioBuf;
@@ -169,9 +168,6 @@ async fn run(
 	};
 
 	let mut connected = false;
-	// Profile pictures: each avatar hash is downloaded once per connection.
-	let mut avatars_asked: HashSet<String> = HashSet::new();
-	let mut avatar_downloads: HashMap<FiletransferHandle, String> = HashMap::new();
 	// False once every UI handle is gone. The connection then keeps running, and only
 	// an explicit Disconnect action (or the connect deadline) ends it.
 	let mut actions_open = true;
@@ -188,7 +184,6 @@ async fn run(
 					Some(Ok(StreamItem::BookEvents(_))) => Step::Book,
 					Some(Ok(StreamItem::MessageEvent(msg))) => Step::Message(msg),
 					Some(Ok(StreamItem::Audio(packet))) => Step::Audio(packet),
-					Some(Ok(StreamItem::FileDownload(handle, result))) => Step::Download(handle, result),
 					Some(Ok(_)) => Step::Other,
 					Some(Err(e)) => Step::Failed(e.to_string()),
 					None => Step::Closed,
@@ -216,20 +211,6 @@ async fn run(
 					conn_id: conn_id.to_owned(),
 					snapshot: snap,
 				});
-				// Ask for the profile pictures we do not have yet.
-				let wanted: Vec<String> = con
-					.get_state()?
-					.clients
-					.values()
-					.map(|c| c.avatar_hash.clone())
-					.filter(|h| !h.is_empty() && !avatars_asked.contains(h))
-					.collect();
-				for hash in wanted {
-					avatars_asked.insert(hash.clone());
-					if let Ok(handle) = con.download_file(ChannelId(0), &format!("/avatar_{hash}"), None, None) {
-						avatar_downloads.insert(handle, hash);
-					}
-				}
 			}
 			Step::Message(msg) => {
 				if let InMessage::TextMessage(text) = msg {
@@ -285,17 +266,6 @@ async fn run(
 				send_notice(events, conn_id, "audio_stopped", "The microphone stopped.".into());
 			}
 			Step::Other => {}
-			Step::Download(handle, result) => {
-				if let Some(hash) = avatar_downloads.remove(&handle) {
-					let events = events.clone();
-					let conn_id = conn_id.to_owned();
-					tokio::spawn(async move {
-						if let Some(data_url) = read_avatar(result).await {
-							let _ = events.send(Event::Avatar { conn_id, hash, data_url });
-						}
-					});
-				}
-			}
 			Step::TimedOut => return Err(anyhow!("timed out waiting for the server")),
 			Step::Failed(msg) => return Err(anyhow!("connection error: {msg}")),
 			Step::Closed => return Err(anyhow!("connection closed by the server")),
@@ -339,7 +309,6 @@ async fn next_frame(engine: &mut Option<audio::Engine>) -> Option<Vec<f32>> {
 enum Step {
 	Book,
 	Other,
-	Download(FiletransferHandle, FileDownloadResult),
 	Message(InMessage),
 	Audio(InAudioBuf),
 	Frame(Option<Vec<f32>>),
@@ -431,32 +400,4 @@ fn friendly(err: &anyhow::Error) -> String {
 	} else {
 		msg
 	}
-}
-
-/// Largest profile picture we accept. TeamSpeak limits avatars to a few hundred kilobytes.
-const MAX_AVATAR_BYTES: u64 = 2 * 1024 * 1024;
-
-/// Reads a profile picture from a file transfer and returns it as a data: URL.
-/// Returns None for anything that is not a PNG, JPEG, GIF or WebP image, and after 10 seconds.
-async fn read_avatar(result: FileDownloadResult) -> Option<String> {
-	use base64::{engine::general_purpose::STANDARD, Engine as _};
-	use std::time::Duration;
-	use tokio::io::AsyncReadExt;
-
-	let mut stream = result.stream;
-	let mut bytes = Vec::new();
-	let mut limited = (&mut stream).take(MAX_AVATAR_BYTES);
-	tokio::time::timeout(Duration::from_secs(10), limited.read_to_end(&mut bytes)).await.ok()?.ok()?;
-	let mime = if bytes.starts_with(b"\x89PNG") {
-		"image/png"
-	} else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
-		"image/jpeg"
-	} else if bytes.starts_with(b"GIF8") {
-		"image/gif"
-	} else if bytes.starts_with(b"RIFF") {
-		"image/webp"
-	} else {
-		return None;
-	};
-	Some(format!("data:{mime};base64,{}", STANDARD.encode(&bytes)))
 }

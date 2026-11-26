@@ -823,7 +823,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "audiopus",
- "base64 0.21.7",
  "cpal",
  "futures",
  "serde",

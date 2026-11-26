@@ -38,7 +38,6 @@ async fn main() -> anyhow::Result<()> {
 			Event::Snapshot { snapshot, .. } => {
 				print_tree(&snapshot);
 			}
-			Event::Avatar { hash, data_url, .. } => eprintln!("[avatar] {hash} {} bytes", data_url.len()),
 			Event::Notice { message, .. } => eprintln!("[notice] {message}"),
 			Event::Message { channel_id, message, .. } => {
 				eprintln!("[chat ch{channel_id}] {}: {}", message.from.nickname, message.text);

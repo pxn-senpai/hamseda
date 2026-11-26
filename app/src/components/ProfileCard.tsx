@@ -11,8 +11,6 @@ interface Props {
   isBot: boolean;
   /** Where the member row is on screen; the card opens next to it. */
   anchor: DOMRect;
-  /** Profile picture, if one has arrived. */
-  src?: string;
   onClose: () => void;
 }
 
@@ -21,7 +19,7 @@ const GAP = 10;
 const EDGE = 8;
 
 /** A small profile card that opens next to a member's row. */
-export function ProfileCard({ client, channelName, isBot, anchor, src, onClose }: Props) {
+export function ProfileCard({ client, channelName, isBot, anchor, onClose }: Props) {
   const { t } = useSettings();
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
@@ -66,7 +64,7 @@ export function ProfileCard({ client, channelName, isBot, anchor, src, onClose }
     >
       <div className="profile-banner" style={{ background: `linear-gradient(135deg, ${avatarColor(client.nickname)}, var(--accent))` }} />
       <div className="profile-avatar">
-        <Avatar name={client.nickname} size={68} talking={client.talking} dim={client.away} src={src} />
+        <Avatar name={client.nickname} size={68} talking={client.talking} dim={client.away} />
         <span className={`profile-status ${status}`} aria-label={t(status === 'away' ? 'away' : 'online')} />
       </div>
 

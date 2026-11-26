@@ -10,7 +10,6 @@ interface Props {
   clients: Client[];
   groups: Group[];
   channels: Channel[];
-  avatars?: Record<string, string>;
 }
 
 interface Section {
@@ -26,7 +25,7 @@ function isBot(c: Client, botNames: string[]): boolean {
   return botNames.some((n) => n.trim().toLowerCase() === nick);
 }
 
-export function MemberList({ clients, groups, channels, avatars }: Props) {
+export function MemberList({ clients, groups, channels }: Props) {
   const { t, botNames } = useSettings();
   const [open, setOpen] = useState<{ client: Client; anchor: DOMRect } | null>(null);
 
@@ -89,13 +88,7 @@ export function MemberList({ clients, groups, channels, avatars }: Props) {
                   aria-haspopup="dialog"
                   onClick={(e) => setOpen({ client: c, anchor: e.currentTarget.getBoundingClientRect() })}
                 >
-                  <Avatar
-                    name={c.nickname}
-                    size={32}
-                    talking={c.talking}
-                    dim={c.away}
-                    src={c.avatarHash ? avatars?.[c.avatarHash] : undefined}
-                  />
+                  <Avatar name={c.nickname} size={32} talking={c.talking} dim={c.away} />
                   <span className="m-main">
                     <span className="m-name" style={color ? { color } : undefined}>
                       {c.nickname}
@@ -117,7 +110,6 @@ export function MemberList({ clients, groups, channels, avatars }: Props) {
           channelName={channelName(open.client.channelId)}
           isBot={isBot(open.client, botNames)}
           anchor={open.anchor}
-          src={open.client.avatarHash ? avatars?.[open.client.avatarHash] : undefined}
           onClose={() => setOpen(null)}
         />
       )}

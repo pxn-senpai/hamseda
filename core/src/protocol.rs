@@ -43,9 +43,6 @@ pub struct Client {
 	pub is_self: bool,
 	/// ServerQuery client (a bot by definition).
 	pub is_query: bool,
-	/// Hash of the profile picture; the picture arrives as an `Avatar` event.
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub avatar_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -88,12 +85,6 @@ pub enum Event {
 		conn_id: String,
 		#[serde(flatten)]
 		snapshot: Snapshot,
-	},
-	/// A profile picture, as a data: URL (ready for an <img> tag). `hash` is the avatar hash.
-	Avatar {
-		conn_id: String,
-		hash: String,
-		data_url: String,
 	},
 	Notice {
 		conn_id: String,

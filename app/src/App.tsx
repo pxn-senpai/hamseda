@@ -245,7 +245,7 @@ export function App() {
               }
             />
 
-            {snap && <MemberList clients={snap.clients} groups={snap.groups} channels={snap.channels} avatars={active?.avatars} />}
+            {snap && <MemberList clients={snap.clients} groups={snap.groups} channels={snap.channels} />}
           </>
         )}
       </div>
