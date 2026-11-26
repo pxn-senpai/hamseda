@@ -226,12 +226,8 @@ async fn run(
 					.collect();
 				for hash in wanted {
 					avatars_asked.insert(hash.clone());
-					match con.download_file(ChannelId(0), &format!("/avatar_{hash}"), None, None) {
-						Ok(handle) => {
-							eprintln!("[dbg avatar] requested {hash}");
-							avatar_downloads.insert(handle, hash);
-						}
-						Err(err) => eprintln!("[dbg avatar] request failed {hash}: {err}"),
+					if let Ok(handle) = con.download_file(ChannelId(0), &format!("/avatar_{hash}"), None, None) {
+						avatar_downloads.insert(handle, hash);
 					}
 				}
 			}
@@ -290,7 +286,6 @@ async fn run(
 			}
 			Step::Other => {}
 			Step::Download(handle, result) => {
-				eprintln!("[dbg avatar] stream arrived, known={}", avatar_downloads.contains_key(&handle));
 				if let Some(hash) = avatar_downloads.remove(&handle) {
 					let events = events.clone();
 					let conn_id = conn_id.to_owned();
@@ -451,9 +446,7 @@ async fn read_avatar(result: FileDownloadResult) -> Option<String> {
 	let mut stream = result.stream;
 	let mut bytes = Vec::new();
 	let mut limited = (&mut stream).take(MAX_AVATAR_BYTES);
-	let res = tokio::time::timeout(Duration::from_secs(10), limited.read_to_end(&mut bytes)).await;
-	eprintln!("[dbg avatar] read result {:?} bytes={}", res.as_ref().map(|r| r.is_ok()), bytes.len());
-	res.ok()?.ok()?;
+	tokio::time::timeout(Duration::from_secs(10), limited.read_to_end(&mut bytes)).await.ok()?.ok()?;
 	let mime = if bytes.starts_with(b"\x89PNG") {
 		"image/png"
 	} else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
