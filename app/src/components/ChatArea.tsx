@@ -12,9 +12,11 @@ interface Props {
   selfId: number;
   canSend: boolean;
   onSend: (text: string) => void;
+  /** Name of the person in a private conversation. When set, `channel` is null. */
+  privateWith?: string;
 }
 
-export function ChatArea({ channel, messages, selfId, canSend, onSend }: Props) {
+export function ChatArea({ channel, messages, selfId, canSend, onSend, privateWith }: Props) {
   const { t, lang } = useSettings();
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
@@ -40,7 +42,7 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend }: Props) 
     }
   };
 
-  if (!channel) {
+  if (!channel && !privateWith) {
     return (
       <section className="chat">
         <div className="chat-empty">{t('noMessages')}</div>
@@ -51,15 +53,24 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend }: Props) 
   return (
     <section className="chat">
       <header className="chat-head">
-        <Hash size={20} />
-        <strong>{channel.name}</strong>
-        {channel.topic && <span className="topic" dir="auto">{channel.topic}</span>}
+        {privateWith ? (
+          <>
+            <strong>{privateWith}</strong>
+            <span className="topic">{t('privateMessage')}</span>
+          </>
+        ) : (
+          <>
+            <Hash size={20} />
+            <strong>{channel?.name}</strong>
+            {channel?.topic && <span className="topic" dir="auto">{channel.topic}</span>}
+          </>
+        )}
       </header>
 
       <div className="chat-scroll">
         <div className="chat-start">
-          <h3>{channel.name}</h3>
-          <p>{t('beginning')}</p>
+          <h3>{privateWith ?? channel?.name}</h3>
+          <p>{privateWith ? t('privateBeginning') : t('beginning')}</p>
         </div>
 
         {messages.length === 0 && <p className="chat-none">{t('noMessages')}</p>}
@@ -100,7 +111,13 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend }: Props) 
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={canSend ? `${t('chatPlaceholder')} #${channel.name}` : t('chatReadOnly')}
+          placeholder={
+            canSend
+              ? privateWith
+                ? `${t('privateTo')} ${privateWith}`
+                : `${t('chatPlaceholder')} #${channel?.name}`
+              : t('chatReadOnly')
+          }
           disabled={!canSend}
           rows={1}
           maxLength={1000}

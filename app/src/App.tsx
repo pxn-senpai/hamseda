@@ -6,6 +6,15 @@ import type { ServerConfig } from './types';
 import { ServerRail } from './components/ServerRail';
 import { ChannelPane } from './components/ChannelPane';
 import { ChatArea } from './components/ChatArea';
+import { PrivateChats } from './components/PrivateChats';
+import type { ServerState } from './types';
+
+/** Name shown for a private conversation: the live nickname, else the last sender's name. */
+function personName(server: ServerState, id: number): string {
+  const live = server.snapshot?.clients.find((c) => c.id === id);
+  const last = server.privateMessages?.[id]?.at(-1);
+  return live?.nickname ?? last?.from.nickname ?? '';
+}
 import { MemberList } from './components/MemberList';
 import { UserPanel } from './components/UserPanel';
 import { ConnectDialog } from './components/ConnectDialog';
@@ -25,14 +34,17 @@ export function App() {
     toastTimer.current = setTimeout(() => setToast(null), 4000);
   }, []);
 
-  const { servers, bridgeUp, connect, disconnect, upsert, remove, send } = useBridge(showToast);
+  const { servers, bridgeUp, connect, disconnect, upsert, remove, send, notePrivate } = useBridge(showToast);
   useVoiceSounds(servers);
+  // The private conversation on screen (a client id), or null for the channel.
+  const [pmWith, setPmWith] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<Record<string, number>>({});
   const [dialog, setDialog] = useState<Dialog>(null);
 
   const list = useMemo(() => Object.values(servers), [servers]);
   const active = activeId ? servers[activeId] : undefined;
+  useEffect(() => setPmWith(null), [activeId]);
   const snap = active?.snapshot;
   const self = snap?.clients.find((c) => c.isSelf);
 
@@ -211,10 +223,14 @@ export function App() {
         {active && (
           <>
             <div className="left-col">
+              <PrivateChats server={active} selectedId={pmWith} onOpen={(id) => setPmWith(id)} />
               <ChannelPane
                 server={active}
                 selectedChannelId={channelId}
-                onSelectChannel={(id) => setSelectedChannel((s) => ({ ...s, [active.config.id]: id }))}
+                onSelectChannel={(id) => {
+                  setPmWith(null);
+                  setSelectedChannel((s) => ({ ...s, [active.config.id]: id }));
+                }}
                 onJoinChannel={(id) => {
                   setSelectedChannel((s) => ({ ...s, [active.config.id]: id }));
                   if (canInteract) send({ type: 'joinChannel', connId: active.config.id, channelId: id });
@@ -235,17 +251,33 @@ export function App() {
             </div>
 
             <ChatArea
-              channel={channel}
-              messages={channelId ? active.messages[channelId] ?? [] : []}
+              channel={pmWith !== null ? null : channel}
+              privateWith={pmWith !== null ? personName(active, pmWith) : undefined}
+              messages={
+                pmWith !== null
+                  ? active.privateMessages?.[pmWith] ?? []
+                  : channelId
+                    ? active.messages[channelId] ?? []
+                    : []
+              }
               selfId={snap?.selfId ?? 0}
               canSend={canInteract}
-              onSend={(text) =>
-                channelId &&
-                send({ type: 'sendMessage', connId: active.config.id, channelId, text })
-              }
+              onSend={(text) => {
+                if (pmWith !== null) {
+                  send({ type: 'sendPrivate', connId: active.config.id, clientId: pmWith, text });
+                  notePrivate(active.config.id, pmWith, text);
+                } else if (channelId) {
+                  send({ type: 'sendMessage', connId: active.config.id, channelId, text });
+                }
+              }}
             />
 
-            {snap && <MemberList clients={snap.clients} groups={snap.groups} channels={snap.channels} />}
+            {snap && <MemberList
+                clients={snap.clients}
+                groups={snap.groups}
+                channels={snap.channels}
+                onMessage={(id) => setPmWith(id)}
+              />}
           </>
         )}
       </div>

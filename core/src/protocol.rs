@@ -95,6 +95,9 @@ pub enum Event {
 	Message {
 		conn_id: String,
 		channel_id: u64,
+		/// For a private message: the other person's client id. Absent for channel and server messages.
+		#[serde(skip_serializing_if = "Option::is_none")]
+		pm_with: Option<u16>,
 		message: ChatMessage,
 	},
 }

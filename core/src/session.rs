@@ -225,9 +225,19 @@ async fn run(
 							TextMessageTargetMode::Channel => own_channel,
 							_ => 0,
 						};
+						// A private message is shown in the conversation with its sender. Our own
+						// private messages are added by the UI when we send them.
+						let pm_with = match part.target {
+							TextMessageTargetMode::Client if part.invoker_id.0 != state.own_client.0 => {
+								Some(part.invoker_id.0)
+							}
+							TextMessageTargetMode::Client => continue,
+							_ => None,
+						};
 						let _ = events.send(Event::Message {
 							conn_id: conn_id.to_owned(),
 							channel_id,
+							pm_with,
 							message: ChatMessage {
 								id: next_message_id(),
 								from: ChatFrom {

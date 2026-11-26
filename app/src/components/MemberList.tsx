@@ -10,6 +10,7 @@ interface Props {
   clients: Client[];
   groups: Group[];
   channels: Channel[];
+  onMessage?: (clientId: number) => void;
 }
 
 interface Section {
@@ -25,7 +26,7 @@ function isBot(c: Client, botNames: string[]): boolean {
   return botNames.some((n) => n.trim().toLowerCase() === nick);
 }
 
-export function MemberList({ clients, groups, channels }: Props) {
+export function MemberList({ clients, groups, channels, onMessage }: Props) {
   const { t, botNames } = useSettings();
   const [open, setOpen] = useState<{ client: Client; anchor: DOMRect } | null>(null);
 
@@ -110,6 +111,14 @@ export function MemberList({ clients, groups, channels }: Props) {
           channelName={channelName(open.client.channelId)}
           isBot={isBot(open.client, botNames)}
           anchor={open.anchor}
+          onMessage={
+            onMessage
+              ? () => {
+                  onMessage(open.client.id);
+                  setOpen(null);
+                }
+              : undefined
+          }
           onClose={() => setOpen(null)}
         />
       )}

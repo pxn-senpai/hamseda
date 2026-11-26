@@ -16,6 +16,7 @@ const STORAGE_KEY = 'hamseda.servers';
 type Servers = Record<string, ServerState>;
 
 type Action =
+  | { type: 'privateSent'; connId: string; peerId: number; text: string }
   | { type: 'upsert'; config: ServerConfig }
   | { type: 'remove'; id: string }
   | { type: 'bridgeDown' }
@@ -23,6 +24,26 @@ type Action =
 
 function reducer(state: Servers, action: Action): Servers {
   switch (action.type) {
+    case 'privateSent': {
+      // Our own private message: the server does not echo it back, so the UI adds it.
+      const s = state[action.connId];
+      if (!s) return state;
+      const me = s.snapshot?.clients.find((c) => c.isSelf);
+      const message = {
+        id: `${Date.now()}-${Math.random()}`,
+        from: { id: me?.id ?? 0, nickname: me?.nickname ?? '' },
+        text: action.text,
+        ts: Date.now(),
+      };
+      const list = s.privateMessages?.[action.peerId] ?? [];
+      return {
+        ...state,
+        [action.connId]: {
+          ...s,
+          privateMessages: { ...(s.privateMessages ?? {}), [action.peerId]: [...list, message].slice(-200) },
+        },
+      };
+    }
     case 'upsert': {
       const old = state[action.config.id];
       return {
@@ -81,6 +102,16 @@ function reducer(state: Servers, action: Action): Servers {
           };
         }
         case 'message': {
+          if (ev.pmWith !== undefined) {
+            const pm = s.privateMessages?.[ev.pmWith] ?? [];
+            return {
+              ...state,
+              [ev.connId]: {
+                ...s,
+                privateMessages: { ...(s.privateMessages ?? {}), [ev.pmWith]: [...pm, ev.message].slice(-200) },
+              },
+            };
+          }
           const list = s.messages[ev.channelId] ?? [];
           return {
             ...state,
@@ -329,7 +360,13 @@ export function useBridge(onNotice: (message: string) => void) {
     [send],
   );
 
-  return { servers, bridgeUp, connect, disconnect, upsert, remove, send };
+  const notePrivate = useCallback(
+    (connId: string, peerId: number, text: string) =>
+      dispatch({ type: 'privateSent', connId, peerId, text }),
+    [],
+  );
+
+  return { servers, bridgeUp, connect, disconnect, upsert, remove, send, notePrivate };
 }
 
 /**
@@ -354,6 +391,8 @@ function toCoreAction(msg: Record<string, unknown>): Record<string, unknown> | n
       return { type: 'setAudioDevices', input: msg.input ?? null, output: msg.output ?? null };
     case 'setTransmit':
       return { type: 'setTransmit', mode: msg.mode };
+    case 'sendPrivate':
+      return { type: 'chat', target: { kind: 'client', clientId: msg.clientId }, text: msg.text };
     case 'sendMessage':
       // The core sends to the channel we are in; a channel id from another channel is not supported yet.
       return { type: 'chat', target: { kind: 'channel' }, text: msg.text };

@@ -78,6 +78,8 @@ export interface ServerState {
   message?: string;
   snapshot?: Snapshot;
   messages: Record<number, ChatMessage[]>; // by channel id
+  /** Private conversations, by the other person's client id. */
+  privateMessages?: Record<number, ChatMessage[]>;
 }
 
 /** Messages the bridge sends to the UI. */
@@ -85,5 +87,5 @@ export type BridgeEvent =
   | { type: 'status'; connId: string; state: ConnState; message?: string; code?: string }
   | ({ type: 'snapshot'; connId: string } & Snapshot)
   | { type: 'clientPatch'; connId: string; clientId: number; changes: Partial<Client> }
-  | { type: 'message'; connId: string; channelId: number; message: ChatMessage }
+  | { type: 'message'; connId: string; channelId: number; pmWith?: number; message: ChatMessage }
   | { type: 'notice'; connId: string; code: string; message: string };

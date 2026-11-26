@@ -11,6 +11,8 @@ interface Props {
   isBot: boolean;
   /** Where the member row is on screen; the card opens next to it. */
   anchor: DOMRect;
+  /** Opens a private conversation with this person. */
+  onMessage?: () => void;
   onClose: () => void;
 }
 
@@ -19,7 +21,7 @@ const GAP = 10;
 const EDGE = 8;
 
 /** A small profile card that opens next to a member's row. */
-export function ProfileCard({ client, channelName, isBot, anchor, onClose }: Props) {
+export function ProfileCard({ client, channelName, isBot, anchor, onMessage, onClose }: Props) {
   const { t } = useSettings();
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
@@ -108,6 +110,12 @@ export function ProfileCard({ client, channelName, isBot, anchor, onClose }: Pro
             {channelName || '—'}
           </span>
         </div>
+
+        {onMessage && !client.isSelf && (
+          <button type="button" className="btn primary profile-action" onClick={onMessage}>
+            {t('sendPrivate')}
+          </button>
+        )}
       </div>
     </div>
   );
