@@ -188,7 +188,13 @@ export function ChannelPane({
                     <ul className="channel-users" style={{ paddingInlineStart: 28 + row.depth * 16 }}>
                       {users.map((u) => (
                         <li key={u.id} className={u.away ? 'away' : ''}>
-                          <Avatar name={u.nickname} size={22} talking={u.talking} dim={u.away} />
+                          <Avatar
+                            name={u.nickname}
+                            size={22}
+                            talking={u.talking}
+                            dim={u.away}
+                            src={u.avatarHash ? server.avatars?.[u.avatarHash] : undefined}
+                          />
                           <span className="u-main">
                             <span className="u-name">{u.nickname}</span>
                             {u.inputMuted && <MicOff size={13} aria-label={t('mute')} />}
