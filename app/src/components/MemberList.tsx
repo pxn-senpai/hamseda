@@ -1,13 +1,21 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Headphones, MicOff, MoonStar } from 'lucide-react';
 import { useSettings } from '../settings';
 import { roleColor } from '../lib/util';
-import type { Client, Group } from '../types';
+import type { Channel, Client, Group } from '../types';
 import { Avatar } from './Avatar';
+import { ProfileCard } from './ProfileCard';
 
 interface Props {
   clients: Client[];
   groups: Group[];
+  channels: Channel[];
+}
+
+interface Section {
+  key: string;
+  title: string;
+  members: { client: Client; color?: string }[];
 }
 
 /** Server query clients and the names the user marked as music bots. */
@@ -17,14 +25,9 @@ function isBot(c: Client, botNames: string[]): boolean {
   return botNames.some((n) => n.trim().toLowerCase() === nick);
 }
 
-interface Section {
-  key: string;
-  title: string;
-  members: { client: Client; color?: string }[];
-}
-
-export function MemberList({ clients, groups }: Props) {
+export function MemberList({ clients, groups, channels }: Props) {
   const { t, botNames } = useSettings();
+  const [open, setOpen] = useState<{ client: Client; anchor: DOMRect } | null>(null);
 
   const sections = useMemo<Section[]>(() => {
     const sorted = [...groups].sort((a, b) => a.sortId - b.sortId);
@@ -67,6 +70,8 @@ export function MemberList({ clients, groups }: Props) {
     return list;
   }, [clients, groups, botNames, t]);
 
+  const channelName = (id: number) => channels.find((c) => c.id === id)?.name ?? '';
+
   return (
     <aside className="members" aria-label={t('members')}>
       {sections.map((s) => (
@@ -77,20 +82,37 @@ export function MemberList({ clients, groups }: Props) {
           <ul>
             {s.members.map(({ client: c, color }) => (
               <li key={c.id} className={c.away ? 'away' : ''}>
-                <Avatar name={c.nickname} size={32} talking={c.talking} dim={c.away} />
-                <span className="m-main">
-                  <span className="m-name" style={color ? { color } : undefined}>
-                    {c.nickname}
+                <button
+                  type="button"
+                  className="member-row"
+                  aria-haspopup="dialog"
+                  onClick={(e) => setOpen({ client: c, anchor: e.currentTarget.getBoundingClientRect() })}
+                >
+                  <Avatar name={c.nickname} size={32} talking={c.talking} dim={c.away} />
+                  <span className="m-main">
+                    <span className="m-name" style={color ? { color } : undefined}>
+                      {c.nickname}
+                    </span>
+                    {c.inputMuted && <MicOff size={14} aria-label={t('mute')} />}
+                    {c.outputMuted && <Headphones size={14} aria-label={t('deafen')} />}
+                    {c.away && <MoonStar size={14} aria-label={t('away')} />}
                   </span>
-                  {c.inputMuted && <MicOff size={14} aria-label={t('mute')} />}
-                  {c.outputMuted && <Headphones size={14} aria-label={t('deafen')} />}
-                  {c.away && <MoonStar size={14} aria-label={t('away')} />}
-                </span>
+                </button>
               </li>
             ))}
           </ul>
         </section>
       ))}
+
+      {open && (
+        <ProfileCard
+          client={open.client}
+          channelName={channelName(open.client.channelId)}
+          isBot={isBot(open.client, botNames)}
+          anchor={open.anchor}
+          onClose={() => setOpen(null)}
+        />
+      )}
     </aside>
   );
 }
