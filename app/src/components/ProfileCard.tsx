@@ -62,7 +62,7 @@ export function ProfileCard({ client, channelName, isBot, anchor, onClose }: Pro
       ref={ref}
       style={{ left: pos?.left ?? -9999, top: pos?.top ?? -9999, visibility: pos ? 'visible' : 'hidden' }}
     >
-      <div className="profile-banner" style={{ background: avatarColor(client.nickname) }} />
+      <div className="profile-banner" style={{ background: `linear-gradient(135deg, ${avatarColor(client.nickname)}, var(--accent))` }} />
       <div className="profile-avatar">
         <Avatar name={client.nickname} size={68} talking={client.talking} dim={client.away} />
         <span className={`profile-status ${status}`} aria-label={t(status === 'away' ? 'away' : 'online')} />
