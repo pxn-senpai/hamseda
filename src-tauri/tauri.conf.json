@@ -41,7 +41,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkyQURDOUY2M0E3RkE1OTYKUldTV3BYODY5c210a2lxeExzOTV6SDVCY0JBZ2FiU2poUTRIaERCQU9mQ3pJc1V3NHRIQzNMSEYK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFEOTE1NTI3MjYwRTRDNEYKUldSUFRBNG1KMVdSSFh6b2F5N3RjK2YwS2FPRkQzRTVVUmhaUUlaMzg3Q2ZIdENDc0FYNXo1SlIK",
       "endpoints": [
         "https://github.com/pxn-senpai/hamseda/releases/latest/download/latest.json"
       ]
