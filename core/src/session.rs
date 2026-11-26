@@ -198,6 +198,10 @@ async fn run(
 			Step::Book => {
 				if !connected {
 					connected = true;
+					// Like the official client, subscribe to all channels. Without this the
+					// server only tells us about people in our own channel.
+					let subscribe = con.get_state()?.server.set_subscribed(true);
+					subscribe.send(&mut con)?;
 					send_status(events, conn_id, ConnState::Connected, None);
 				}
 				// Full snapshot after each book update. Simple and always correct;
