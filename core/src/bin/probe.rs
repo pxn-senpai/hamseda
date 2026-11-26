@@ -76,9 +76,6 @@ fn print_children(snap: &Snapshot, parent: u64, depth: usize, indent: &str) {
 			if cl.away {
 				flags.push("away");
 			}
-			if cl.avatar_hash.is_some() {
-				flags.push("[has avatar]");
-			}
 			let me = if cl.is_self { " (you)" } else { "" };
 			eprintln!("{indent}  - {}{me} {}", cl.nickname, flags.join(" "));
 		}
