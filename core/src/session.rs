@@ -207,7 +207,7 @@ async fn run(
 			}
 			Step::Message(msg) => {
 				if let InMessage::TextMessage(text) = msg {
-					let state = con.get_state()?;
+					let Ok(state) = con.get_state() else { continue };
 					let own_channel = state
 						.clients
 						.get(&state.own_client)
@@ -240,14 +240,18 @@ async fn run(
 				}
 			}
 			Step::Frame(Some(frame)) => {
-				let state = con.get_state()?;
-				let muted = state
-					.clients
-					.get(&state.own_client)
-					.map(|c| c.input_muted)
-					.unwrap_or(false);
-				if let Some(packet) = audio_state.sender.process(&frame, muted)? {
-					con.send_audio(packet)?;
+				// The microphone can deliver frames while the server is still answering.
+				// The library reports "Currently not connected" for those, so such frames are
+				// dropped instead of ending the session.
+				if let Ok(state) = con.get_state() {
+					let muted = state
+						.clients
+						.get(&state.own_client)
+						.map(|c| c.input_muted)
+						.unwrap_or(false);
+					if let Some(packet) = audio_state.sender.process(&frame, muted)? {
+						let _ = con.send_audio(packet);
+					}
 				}
 			}
 			Step::Frame(None) => {
