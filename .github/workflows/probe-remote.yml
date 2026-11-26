@@ -39,6 +39,10 @@ jobs:
           grep -E "^\[(status|notice|probe)\]" probe.err || true
           echo "--- last 60 lines of the connection log ---"
           tail -n 60 probe.err || true
+          echo "--- users seen in the last snapshot ---"
+          grep -E "^\s+- " probe.err | tail -n 80 || echo "no users in the snapshot"
+          echo "--- number of snapshots ---"
+          grep -c "^--- server" probe.err || true
           echo "--- channel tree ---"
           head -n 60 probe.out || true
           grep -q "\[status\] Connected" probe.err && echo "RESULT: connected" || { echo "RESULT: not connected"; exit 1; }
