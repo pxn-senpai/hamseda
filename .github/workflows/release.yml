@@ -40,6 +40,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          tauriScript: npm run desktop:build
           tagName: ${{ github.ref_name }}
           releaseName: "Hamseda ${{ github.ref_name }}"
           releaseBody: "Windows installer. Installed copies of Hamseda can update themselves from Settings."
