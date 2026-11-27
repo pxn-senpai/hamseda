@@ -30,7 +30,14 @@ function isBot(c: Client, botNames: string[]): boolean {
 }
 
 export function MemberList({ clients, groups, channels, privateMessages, onMessage, onJoinChannel }: Props) {
-  const { t, botNames } = useSettings();
+  const { t, botNames, setBotNames } = useSettings();
+
+  // Mark or unmark a person as a music bot (kept on this computer, by nickname).
+  const toggleBot = (nickname: string) => {
+    const key = nickname.trim().toLowerCase();
+    const marked = botNames.some((n) => n.trim().toLowerCase() === key);
+    setBotNames(marked ? botNames.filter((n) => n.trim().toLowerCase() !== key) : [...botNames, nickname]);
+  };
   const [open, setOpen] = useState<{ client: Client; anchor: DOMRect } | null>(null);
 
   const sections = useMemo<Section[]>(() => {
@@ -115,6 +122,7 @@ export function MemberList({ clients, groups, channels, privateMessages, onMessa
           client={openClient}
           channelName={channelName(openClient.channelId)}
           isBot={isBot(openClient, botNames)}
+          onToggleBot={openClient.isQuery ? undefined : () => toggleBot(openClient.nickname)}
           sameChannel={myChannel !== undefined && myChannel === openClient.channelId}
           lastPrivate={privateMessages?.[openClient.id]?.at(-1)?.text}
           anchor={open.anchor}

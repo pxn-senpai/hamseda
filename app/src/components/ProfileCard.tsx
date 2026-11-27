@@ -17,6 +17,8 @@ interface Props {
   anchor: DOMRect;
   onMessage?: () => void;
   onJoin?: () => void;
+  /** Marks or unmarks this person as a music bot. */
+  onToggleBot?: () => void;
   onClose: () => void;
 }
 
@@ -34,6 +36,7 @@ export function ProfileCard({
   anchor,
   onMessage,
   onJoin,
+  onToggleBot,
   onClose,
 }: Props) {
   const { t } = useSettings();
@@ -163,6 +166,11 @@ export function ProfileCard({
           {!isSelf && !sameChannel && onJoin && (
             <button type="button" className="btn small" onClick={onJoin}>
               {t('goToChannel')}
+            </button>
+          )}
+          {!isSelf && onToggleBot && (
+            <button type="button" className="btn small" onClick={onToggleBot}>
+              <Bot size={14} /> {isBot ? t('unmarkBot') : t('markBot')}
             </button>
           )}
           <button type="button" className="btn small" onClick={copyName}>
