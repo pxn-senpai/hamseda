@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { BridgeEvent, ServerConfig, ServerState } from './types';
+import type { BridgeEvent, ServerConfig, ServerState, ChatMessage } from './types';
 import { createDemoSession } from '../../bridge/src/demo.mjs';
 import type { DemoSession } from '../../bridge/src/demo.mjs';
 
@@ -135,10 +135,33 @@ function loadBookmarks(): Servers {
     if (!raw) return {};
     const list = JSON.parse(raw) as ServerConfig[];
     const out: Servers = {};
-    for (const config of list) out[config.id] = { config, status: 'disconnected', messages: {} };
+    for (const config of list)
+      out[config.id] = { config, status: 'disconnected', messages: {}, privateMessages: loadPrivate(config.id) };
     return out;
   } catch {
     return {};
+  }
+}
+
+const pmKey = (id: string) => `hamseda.pm.${id}`;
+
+/** Private messages are kept on this computer, the last 200 per server. */
+function loadPrivate(id: string): Record<number, ChatMessage[]> {
+  try {
+    const raw = localStorage.getItem(pmKey(id));
+    return raw ? (JSON.parse(raw) as Record<number, ChatMessage[]>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePrivate(id: string, data: Record<number, ChatMessage[]> | undefined) {
+  try {
+    const trimmed: Record<number, ChatMessage[]> = {};
+    for (const [peer, list] of Object.entries(data ?? {})) trimmed[Number(peer)] = list.slice(-200);
+    localStorage.setItem(pmKey(id), JSON.stringify(trimmed));
+  } catch {
+    /* storage blocked: private messages just will not persist */
   }
 }
 
@@ -181,6 +204,9 @@ export function useBridge(onNotice: (message: string) => void) {
   noticeRef.current = onNotice;
 
   useEffect(() => saveBookmarks(servers), [servers]);
+  useEffect(() => {
+    for (const s of Object.values(servers)) savePrivate(s.config.id, s.privateMessages);
+  }, [servers]);
 
   // Desktop app: events come from the Rust core. Browser: a WebSocket to the Node bridge.
   useEffect(() => {

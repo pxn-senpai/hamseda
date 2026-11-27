@@ -20,6 +20,10 @@ import { UserPanel } from './components/UserPanel';
 import { ConnectDialog } from './components/ConnectDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { useVoiceSounds } from './useVoiceSounds';
+import { playMention } from './sounds';
+import { QuickSwitch } from './components/QuickSwitch';
+import { mentions } from './components/ChatArea';
+import type { ChatMessage } from './types';
 
 type Dialog = { kind: 'connect'; editing?: ServerConfig } | { kind: 'settings' } | null;
 
@@ -38,6 +42,9 @@ export function App() {
   useVoiceSounds(servers);
   // The private conversation on screen (a client id), or null for the channel.
   const [pmWith, setPmWith] = useState<number | null>(null);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const seenRef = useRef<Set<string>>(new Set());
+  const primedRef = useRef(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<Record<string, number>>({});
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -99,6 +106,50 @@ export function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [toggleMic, toggleDeaf]);
+
+  // Ctrl+K: jump to a room or a person.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setQuickOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // New mentions and private messages: a sound, and a desktop notification when the window is not focused.
+  // The first pass only marks what is already there, so connecting does not ring for old messages.
+  useEffect(() => {
+    const fresh: { title: string; body: string }[] = [];
+    for (const s of Object.values(servers)) {
+      const selfId = s.snapshot?.selfId ?? -1;
+      const me = s.snapshot?.clients.find((c) => c.isSelf)?.nickname ?? s.config.nickname;
+      const scan = (list: ChatMessage[] | undefined, pm: boolean) => {
+        for (const m of list ?? []) {
+          const key = `${s.config.id}|${pm ? 'p' : 'c'}|${m.id}`;
+          if (seenRef.current.has(key)) continue;
+          seenRef.current.add(key);
+          if (!primedRef.current || m.from.id === selfId) continue;
+          if (pm || mentions(m.text, me)) fresh.push({ title: m.from.nickname, body: m.text });
+        }
+      };
+      for (const list of Object.values(s.messages)) scan(list, false);
+      for (const list of Object.values(s.privateMessages ?? {})) scan(list, true);
+    }
+    if (primedRef.current && fresh.length > 0) {
+      playMention();
+      if (!document.hasFocus() && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          for (const n of fresh.slice(0, 3)) new Notification(n.title, { body: n.body });
+        } else if (Notification.permission === 'default') {
+          void Notification.requestPermission();
+        }
+      }
+    }
+    primedRef.current = true;
+  }, [servers]);
 
   // Desktop connections only: the core handles the microphone and the input mode.
   const liveDesktopId =
@@ -252,6 +303,7 @@ export function App() {
 
             <ChatArea
               channel={pmWith !== null ? null : channel}
+              selfName={self?.nickname ?? active.config.nickname}
               privateWith={pmWith !== null ? personName(active, pmWith) : undefined}
               messages={
                 pmWith !== null
@@ -272,6 +324,18 @@ export function App() {
               }}
             />
 
+            {quickOpen && snap && (
+              <QuickSwitch
+                channels={snap.channels}
+                clients={snap.clients.filter((c) => !c.isSelf)}
+                onChannel={(id) => {
+                  setPmWith(null);
+                  setSelectedChannel((s) => ({ ...s, [active.config.id]: id }));
+                }}
+                onUser={(id) => setPmWith(id)}
+                onClose={() => setQuickOpen(false)}
+              />
+            )}
             {snap && <MemberList
                 clients={snap.clients}
                 groups={snap.groups}

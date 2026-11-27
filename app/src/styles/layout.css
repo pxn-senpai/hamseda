@@ -1436,3 +1436,159 @@ kbd {
   border-radius: 10px;
   margin-top: 4px;
 }
+
+/* Messages: hover actions, reactions, mentions */
+.msg {
+  position: relative;
+}
+.msg-actions {
+  position: absolute;
+  top: 2px;
+  inset-inline-end: 8px;
+  opacity: 0;
+  transition: opacity 0.15s var(--ease);
+}
+.msg:hover .msg-actions,
+.msg:focus-within .msg-actions {
+  opacity: 1;
+}
+.msg-actions .icon-btn {
+  width: 28px;
+  height: 28px;
+  background: var(--bg-modal);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.react-anchor {
+  position: absolute;
+  top: 34px;
+  inset-inline-end: 8px;
+  z-index: 40;
+}
+/* Opens below the reaction button, so it stays visible at the top of the chat. */
+.react-anchor .emoji-pop {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  top: 0;
+  bottom: auto;
+}
+.reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.reaction {
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-input);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.reaction span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.reaction.mine {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.msg.mention {
+  background: rgb(240 180 74 / 0.09);
+  box-shadow: inset 3px 0 0 var(--warn);
+}
+.mention-tag {
+  padding: 0 3px;
+  border-radius: 4px;
+  background: rgb(240 180 74 / 0.3);
+  color: inherit;
+}
+
+/* Chat header search */
+.chat-head-tools {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+}
+.chat-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 240px;
+  padding: 4px 6px 4px 8px;
+  border-radius: 8px;
+  background: var(--bg-input);
+}
+.chat-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+/* Ctrl+K quick switch */
+.quick-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  background: rgb(0 0 0 / 0.35);
+}
+.quick-box {
+  width: min(440px, 92vw);
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--bg-modal);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  animation: pop 0.18s var(--ease);
+}
+.quick-box input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+.quick-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.quick-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.quick-item.on {
+  background: var(--bg-active);
+  color: var(--text);
+}
+.quick-none {
+  padding: 10px;
+  color: var(--text-faint);
+}

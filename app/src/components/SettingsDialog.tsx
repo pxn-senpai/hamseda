@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Moon, Sun, MonitorSmartphone } from 'lucide-react';
+import { Droplets } from 'lucide-react';
 import { listAudioDevices } from '../bridge';
 import type { AudioDevices } from '../bridge';
 import { useSettings } from '../settings';
@@ -40,6 +41,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     { id: 'dark', label: t('themeDark'), icon: <Moon size={16} /> },
     { id: 'light', label: t('themeLight'), icon: <Sun size={16} /> },
     { id: 'system', label: t('themeSystem'), icon: <MonitorSmartphone size={16} /> },
+    { id: 'amoled', label: t('themeAmoled'), icon: <Moon size={16} /> },
+    { id: 'ocean', label: t('themeOcean'), icon: <Droplets size={16} /> },
   ];
   const statuses: { id: UserStatus; label: string }[] = [
     { id: 'online', label: t('statusOnline') },

@@ -4,7 +4,7 @@ import { dictionaries } from './i18n';
 import { setSoundsEnabled } from './sounds';
 import type { Key, Lang } from './i18n';
 
-export type ThemeSetting = 'dark' | 'light' | 'system';
+export type ThemeSetting = 'dark' | 'light' | 'system' | 'amoled' | 'ocean';
 export type UserStatus = 'online' | 'idle' | 'dnd' | 'invisible';
 export type TransmitSetting = 'voice' | 'ptt';
 
@@ -71,7 +71,7 @@ function save(key: string, value: string) {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => load('hamseda.lang', ['fa', 'en'], 'fa'));
   const [theme, setThemeState] = useState<ThemeSetting>(() =>
-    load('hamseda.theme', ['dark', 'light', 'system'], 'dark'),
+    load('hamseda.theme', ['dark', 'light', 'system', 'amoled', 'ocean'], 'dark'),
   );
   const [status, setStatusState] = useState<UserStatus>(() =>
     load('hamseda.status', ['online', 'idle', 'dnd', 'invisible'], 'online'),

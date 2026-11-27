@@ -62,3 +62,12 @@ export function playJoin() {
 export function playLeave() {
   play([880, 659.25], 0.16);
 }
+
+/** Two short rising notes, for a mention or a private message. */
+export function playMention() {
+  if (!enabled) return;
+  const c = audio();
+  if (!c) return;
+  note(c, 880, 0, 0.12);
+  note(c, 1175, 0.12, 0.1);
+}

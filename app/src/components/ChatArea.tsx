@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
-import { Hash, SmilePlus, SendHorizontal } from 'lucide-react';
+import { Hash, Search, SendHorizontal, SmilePlus, X } from 'lucide-react';
 import { useSettings } from '../settings';
 import { formatDay, formatTime } from '../lib/util';
 import type { Channel, ChatMessage } from '../types';
@@ -20,17 +20,53 @@ function gifUrl(text: string): string | null {
   }
 }
 
+/** Is `name` mentioned in this text as @name? */
+export function mentions(text: string, name: string): boolean {
+  if (!name) return false;
+  return text.toLowerCase().includes(`@${name.toLowerCase()}`);
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Shows the text, with @name highlighted when it is you. */
+function Text({ text, name }: { text: string; name: string }) {
+  if (!mentions(text, name)) return <p dir="auto">{text}</p>;
+  const parts = text.split(new RegExp(`(@${escapeRegExp(name)})`, 'i'));
+  return (
+    <p dir="auto">
+      {parts.map((part, i) =>
+        part.toLowerCase() === `@${name.toLowerCase()}` ? (
+          <mark key={i} className="mention-tag">
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </p>
+  );
+}
+
+interface Reaction {
+  count: number;
+  mine: boolean;
+}
+
 interface Props {
   channel: Channel | null;
   messages: ChatMessage[];
   selfId: number;
+  /** Your own nickname, used to find @mentions. */
+  selfName: string;
   canSend: boolean;
   onSend: (text: string) => void;
   /** Name of the person in a private conversation. When set, `channel` is null. */
   privateWith?: string;
 }
 
-export function ChatArea({ channel, messages, selfId, canSend, onSend, privateWith }: Props) {
+export function ChatArea({ channel, messages, selfId, selfName, canSend, onSend, privateWith }: Props) {
   const { t, lang } = useSettings();
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
@@ -38,23 +74,49 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend, privateWi
   const [panel, setPanel] = useState<'emoji' | 'gif' | null>(null);
   const closePanel = useCallback(() => setPanel(null), []);
 
+  // Reactions are kept on this computer only: TeamSpeak has no reaction message type.
+  const [reactions, setReactions] = useState<Record<string, Record<string, Reaction>>>({});
+  const [reactFor, setReactFor] = useState<string | null>(null);
+  const closeReact = useCallback(() => setReactFor(null), []);
+
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  // A new room or person starts with a clean search.
+  useEffect(() => {
+    setQuery('');
+    setSearchOpen(false);
+  }, [channel?.id, privateWith]);
+
+  // Keep the newest message in view.
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' });
+  }, [messages.length, channel?.id]);
+
   // Put text where the cursor is, then move the cursor after it.
   const insertText = (text: string) => {
     const el = inputRef.current;
     const start = el?.selectionStart ?? draft.length;
     const end = el?.selectionEnd ?? draft.length;
-    const next = draft.slice(0, start) + text + draft.slice(end);
-    setDraft(next);
+    setDraft(draft.slice(0, start) + text + draft.slice(end));
     requestAnimationFrame(() => {
       el?.focus();
       el?.setSelectionRange(start + text.length, start + text.length);
     });
   };
 
-  // Keep the newest message in view.
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' });
-  }, [messages.length, channel?.id]);
+  const toggleReaction = (msgId: string, emoji: string) => {
+    setReactions((prev) => {
+      const msg = prev[msgId] ?? {};
+      const cur = msg[emoji] ?? { count: 0, mine: false };
+      const mine = !cur.mine;
+      const count = cur.count + (mine ? 1 : -1);
+      const nextMsg = { ...msg };
+      if (count <= 0) delete nextMsg[emoji];
+      else nextMsg[emoji] = { count, mine };
+      return { ...prev, [msgId]: nextMsg };
+    });
+  };
 
   const submit = (e?: FormEvent) => {
     e?.preventDefault();
@@ -80,6 +142,9 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend, privateWi
     );
   }
 
+  const q = query.trim().toLowerCase();
+  const shown = q ? messages.filter((m) => m.text.toLowerCase().includes(q)) : messages;
+
   return (
     <section className="chat">
       <header className="chat-head">
@@ -95,6 +160,41 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend, privateWi
             {channel?.topic && <span className="topic" dir="auto">{channel.topic}</span>}
           </>
         )}
+        <div className="chat-head-tools">
+          {searchOpen ? (
+            <label className="chat-search">
+              <Search size={14} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('searchMessages')}
+                autoFocus
+                onKeyDown={(e) => e.key === 'Escape' && (setSearchOpen(false), setQuery(''))}
+              />
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label={t('close')}
+                onClick={() => {
+                  setSearchOpen(false);
+                  setQuery('');
+                }}
+              >
+                <X size={14} />
+              </button>
+            </label>
+          ) : (
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label={t('searchMessages')}
+              title={t('searchMessages')}
+              onClick={() => setSearchOpen(true)}
+            >
+              <Search size={18} />
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="chat-scroll">
@@ -104,16 +204,21 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend, privateWi
         </div>
 
         {messages.length === 0 && <p className="chat-none">{t('noMessages')}</p>}
+        {messages.length > 0 && shown.length === 0 && <p className="chat-none">{t('noSearchResults')}</p>}
 
-        {messages.map((m, i) => {
-          const prev = messages[i - 1];
+        {shown.map((m, i) => {
+          const prev = shown[i - 1];
           const newDay = !prev || formatDay(prev.ts, lang) !== formatDay(m.ts, lang);
           // Same sender within 5 minutes: show as a continuation without repeating the name.
           const grouped = !newDay && prev && prev.from.id === m.from.id && m.ts - prev.ts < 5 * 60_000;
+          const mentioned = mentions(m.text, selfName) && m.from.id !== selfId;
+          const msgReactions = reactions[m.id] ?? {};
           return (
             <div key={m.id}>
               {newDay && <div className="day-sep"><span>{formatDay(m.ts, lang)}</span></div>}
-              <article className={`msg${grouped ? ' grouped' : ''}${m.from.id === selfId ? ' mine' : ''}`}>
+              <article
+                className={`msg${grouped ? ' grouped' : ''}${m.from.id === selfId ? ' mine' : ''}${mentioned ? ' mention' : ''}`}
+              >
                 {grouped ? (
                   <time className="msg-time-side">{formatTime(m.ts, lang)}</time>
                 ) : (
@@ -130,9 +235,46 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend, privateWi
                   {gifUrl(m.text) ? (
                     <img className="msg-gif" src={gifUrl(m.text)!} alt="GIF" loading="lazy" />
                   ) : (
-                    <p dir="auto">{m.text}</p>
+                    <Text text={m.text} name={selfName} />
+                  )}
+                  {Object.keys(msgReactions).length > 0 && (
+                    <div className="reactions">
+                      {Object.entries(msgReactions).map(([emoji, r]) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          className={`reaction${r.mine ? ' mine' : ''}`}
+                          title={t('reactLocal')}
+                          onClick={() => toggleReaction(m.id, emoji)}
+                        >
+                          {emoji} <span>{r.count}</span>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
+                <div className="msg-actions">
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label={t('react')}
+                    title={t('react')}
+                    onClick={() => setReactFor((cur) => (cur === m.id ? null : m.id))}
+                  >
+                    <SmilePlus size={16} />
+                  </button>
+                </div>
+                {reactFor === m.id && (
+                  <div className="react-anchor">
+                    <EmojiPicker
+                      onPick={(emoji) => {
+                        toggleReaction(m.id, emoji);
+                        closeReact();
+                      }}
+                      onClose={closeReact}
+                    />
+                  </div>
+                )}
               </article>
             </div>
           );
