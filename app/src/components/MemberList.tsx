@@ -120,6 +120,7 @@ export function MemberList({ clients, groups, channels, privateMessages, onMessa
       {open && openClient && (
         <ProfileCard
           client={openClient}
+          groups={groups}
           channelName={channelName(openClient.channelId)}
           isBot={isBot(openClient, botNames)}
           onToggleBot={openClient.isQuery ? undefined : () => toggleBot(openClient.nickname)}

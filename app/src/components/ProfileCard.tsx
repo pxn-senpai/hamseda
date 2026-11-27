@@ -2,11 +2,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Bot, Check, Copy, Headphones, Hash, MessageCircle, MicOff, MoonStar, Volume2 } from 'lucide-react';
 import { useSettings } from '../settings';
 import { avatarColor } from '../lib/util';
-import type { Client } from '../types';
+import type { Client, Group } from '../types';
+import { roleColor } from '../lib/util';
 import { Avatar } from './Avatar';
 
 interface Props {
   client: Client;
+  /** All server groups of this server (names and order). */
+  groups: Group[];
   channelName: string;
   isBot: boolean;
   /** The person is in the channel we are in. */
@@ -29,6 +32,7 @@ const EDGE = 8;
 /** The user panel: a card with a person's status, channel, last private message and actions. */
 export function ProfileCard({
   client,
+  groups,
   channelName,
   isBot,
   sameChannel,
@@ -85,6 +89,9 @@ export function ProfileCard({
   const status = client.away ? 'away' : 'online';
   const isSelf = client.isSelf;
 
+  const sortedGroups = [...groups].sort((a, b) => a.sortId - b.sortId);
+  const roles = sortedGroups.filter((g) => client.groupIds.includes(g.id));
+
   return (
     <div
       className="profile-card"
@@ -109,6 +116,17 @@ export function ProfileCard({
             </span>
           )}
         </h3>
+
+        {roles.length > 0 && (
+          <div className="profile-roles">
+            {roles.map((g) => (
+              <span key={g.id} className="role-chip">
+                <i style={{ background: roleColor(g, sortedGroups) }} />
+                {g.name}
+              </span>
+            ))}
+          </div>
+        )}
 
         {(client.inputMuted || client.outputMuted || client.away) && (
           <div className="profile-chips">
