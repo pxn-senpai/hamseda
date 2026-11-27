@@ -1,7 +1,7 @@
 export type Lang = 'fa' | 'en';
 
 const en = {
-  appName: 'Hamseda',
+  appName: 'nava',
   profileBack: 'Back',
   updWelcome: 'Welcome to version',
   updGot: 'Got it',
@@ -34,7 +34,7 @@ const en = {
   demoHelp: 'Demo mode shows invented channels, people and chat so you can try the interface.',
   teamspeakHelp: 'Enter the server address and voice port (9987 by default). The server password is optional.',
   queryHelp:
-    'ServerQuery is the admin interface of a TeamSpeak server. It lets Hamseda read channels and users, but it cannot carry voice. Real voice arrives in stage 2 and 3.',
+    'ServerQuery is the admin interface of a TeamSpeak server. It lets nava read channels and users, but it cannot carry voice. Real voice arrives in stage 2 and 3.',
   name: 'Display name',
   address: 'Server address',
   port: 'Voice port',
@@ -112,7 +112,7 @@ const en = {
   installingUpdate: 'Downloading and installing…',
   updateFailed: 'The update did not finish.',
   updateWebOnly: 'Updates work only in the desktop app.',
-  updateNote: 'Hamseda gets the latest release from GitHub, checks its signature, then installs it and restarts.',
+  updateNote: 'nava gets the latest release from GitHub, checks its signature, then installs it and restarts.',
   theme: 'Theme',
   themeDark: 'Dark',
   themeLight: 'Light',
@@ -145,7 +145,7 @@ const en = {
   audioNote: 'Changes apply to the connected server right away.',
   transmitVoice: 'Voice activity',
   transmitPtt: 'Push to talk (hold V)',
-  welcomeTitle: 'Welcome to Hamseda',
+  welcomeTitle: 'Welcome to nava',
   welcomeText:
     'A Discord-inspired client for TeamSpeak 3. This is stage 1: the interface and a bridge. Try the demo to look around.',
   tryDemo: 'Try the demo',
@@ -165,7 +165,7 @@ const en = {
 export type Key = keyof typeof en;
 
 const fa: Record<Key, string> = {
-  appName: 'هم‌صدا',
+  appName: 'نوا',
   profileBack: 'بازگشت',
   updWelcome: 'خوش‌آمدید به نسخه',
   updGot: 'متوجه شدم',
@@ -198,7 +198,7 @@ const fa: Record<Key, string> = {
   demoHelp: 'حالت دمو کانال‌ها، کاربران و چت ساختگی نشان می‌دهد تا بتوانی رابط را امتحان کنی.',
   teamspeakHelp: 'آدرس سرور و پورت صوتی (پیش‌فرض ۹۹۸۷) را وارد کن. رمز سرور اختیاری است.',
   queryHelp:
-    'ServerQuery رابط مدیریتی سرور تیم‌اسپیک است. هم‌صدا با آن می‌تواند کانال‌ها و کاربران را بخواند، ولی صدا را منتقل نمی‌کند. صدای واقعی در مرحله‌ی ۲ و ۳ می‌آید.',
+    'ServerQuery رابط مدیریتی سرور تیم‌اسپیک است. نوا با آن می‌تواند کانال‌ها و کاربران را بخواند، ولی صدا را منتقل نمی‌کند. صدای واقعی در مرحله‌ی ۲ و ۳ می‌آید.',
   name: 'نام نمایشی',
   address: 'آدرس سرور',
   port: 'پورت صدا',
@@ -276,7 +276,7 @@ const fa: Record<Key, string> = {
   installingUpdate: 'در حال دانلود و نصب…',
   updateFailed: 'به‌روزرسانی کامل نشد.',
   updateWebOnly: 'به‌روزرسانی فقط در نسخه دسکتاپ کار می‌کند.',
-  updateNote: 'همصدا آخرین نسخه را از GitHub می‌گیرد، امضای آن را بررسی می‌کند، سپس نصب و برنامه را دوباره باز می‌کند.',
+  updateNote: 'نوا آخرین نسخه را از GitHub می‌گیرد، امضای آن را بررسی می‌کند، سپس نصب و برنامه را دوباره باز می‌کند.',
   theme: 'تم',
   themeDark: 'تیره',
   themeLight: 'روشن',
@@ -309,7 +309,7 @@ const fa: Record<Key, string> = {
   audioNote: 'تغییرات بلافاصله روی سرور متصل اعمال می‌شوند.',
   transmitVoice: 'تشخیص صدا',
   transmitPtt: 'فشار دادن برای صحبت (نگه داشتن V)',
-  welcomeTitle: 'به هم‌صدا خوش آمدی',
+  welcomeTitle: 'به نوا خوش آمدی',
   welcomeText:
     'کلاینتی الهام‌گرفته از دیسکورد برای TeamSpeak 3. این مرحله‌ی ۱ است: رابط و یک پل. برای دیدن ظاهر، دمو را امتحان کن.',
   tryDemo: 'امتحان دمو',

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Hamseda",
+  "productName": "nava",
   "version": "0.2.8",
   "identifier": "dev.hamseda.desktop",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Hamseda",
+        "title": "nava",
         "width": 1280,
         "height": 800,
         "minWidth": 900,
@@ -36,8 +36,8 @@
       "icons/icon.ico",
       "icons/icon.png"
     ],
-    "shortDescription": "Hamseda voice client",
-    "longDescription": "Hamseda: a Discord-style voice client for TeamSpeak 3 servers."
+    "shortDescription": "nava voice client",
+    "longDescription": "nava: a Discord-style voice client for TeamSpeak 3 servers."
   },
   "plugins": {
     "updater": {

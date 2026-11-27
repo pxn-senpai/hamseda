@@ -99,7 +99,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const el = document.documentElement;
     el.lang = lang;
     el.dir = lang === 'fa' ? 'rtl' : 'ltr';
-    document.title = lang === 'fa' ? 'هم‌صدا | Hamseda' : 'Hamseda';
+    document.title = lang === 'fa' ? 'نوا | nava' : 'nava';
   }, [lang]);
 
   useEffect(() => {
