@@ -1269,22 +1269,6 @@ kbd {
   background: rgb(35 165 90 / 0.14);
 }
 
-/* Channel tree: right side, between the chat and the members */
-.channels-col {
-  width: 260px;
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--bg-pane);
-  border-inline-start: 1px solid var(--border);
-}
-.left-col > :first-child {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
 /* Voice channels: cards with a live user list */
 .channel {
   margin-bottom: 2px;

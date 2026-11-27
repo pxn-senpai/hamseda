@@ -224,6 +224,22 @@ export function App() {
           <>
             <div className="left-col">
               <PrivateChats server={active} selectedId={pmWith} onOpen={(id) => setPmWith(id)} />
+              <ChannelPane
+              server={active}
+              selectedChannelId={channelId}
+              onSelectChannel={(id) => {
+                setPmWith(null);
+                setSelectedChannel((s) => ({ ...s, [active.config.id]: id }));
+              }}
+              onJoinChannel={(id) => {
+                setSelectedChannel((s) => ({ ...s, [active.config.id]: id }));
+                if (canInteract) send({ type: 'joinChannel', connId: active.config.id, channelId: id });
+              }}
+              onReconnect={() => connect(active.config)}
+              onDisconnect={() => disconnect(active.config.id)}
+              onEdit={() => setDialog({ kind: 'connect', editing: active.config })}
+              onRemove={() => remove(active.config.id)}
+              />
               <UserPanel
                 nickname={active.config.nickname}
                 self={self}
@@ -256,24 +272,6 @@ export function App() {
               }}
             />
 
-            <div className="channels-col">
-              <ChannelPane
-                  server={active}
-                  selectedChannelId={channelId}
-                  onSelectChannel={(id) => {
-                    setPmWith(null);
-                    setSelectedChannel((s) => ({ ...s, [active.config.id]: id }));
-                  }}
-                  onJoinChannel={(id) => {
-                    setSelectedChannel((s) => ({ ...s, [active.config.id]: id }));
-                    if (canInteract) send({ type: 'joinChannel', connId: active.config.id, channelId: id });
-                  }}
-                  onReconnect={() => connect(active.config)}
-                  onDisconnect={() => disconnect(active.config.id)}
-                  onEdit={() => setDialog({ kind: 'connect', editing: active.config })}
-                  onRemove={() => remove(active.config.id)}
-                />
-            </div>
             {snap && <MemberList
                 clients={snap.clients}
                 groups={snap.groups}
