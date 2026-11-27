@@ -1,6 +1,18 @@
 // What changed in each release, shown once to users after they update.
 // Add an entry for every new version before publishing it.
 export const CHANGELOG: Record<string, { fa: string[]; en: string[] }> = {
+  '0.2.10': {
+    fa: [
+      'کارت پروفایل هر کاربر، رول‌های سرور او را با رنگ نشان می‌دهد',
+      'صفحه‌ی پروفایل: تغییر نام نمایشی، بیو و عکس پروفایل',
+      'اصلاح چیدمان صفحه‌ی پروفایل و حذف حالت ورودی از آن',
+    ],
+    en: [
+      'Member profile cards show each person\'s server roles in color',
+      'Profile page: change display name, bio and picture',
+      'Profile layout fixes; input mode removed from the profile page',
+    ],
+  },
   '0.2.9': {
     fa: [
       'گفتگوهای خصوصی بالای نوار سمت راست با شمارش پیام‌های خوانده‌نشده',
