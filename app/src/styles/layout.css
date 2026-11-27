@@ -2008,3 +2008,11 @@ kbd {
   font-size: 11px;
   color: var(--good);
 }
+
+/* Leave voice: red phone button in the user panel */
+.icon-btn.leave {
+  color: var(--bad);
+}
+.icon-btn.leave:hover {
+  background: rgb(240 96 93 / 0.14);
+}

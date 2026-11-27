@@ -318,11 +318,16 @@ export function App() {
               />
               <UserPanel
                 nickname={active.config.nickname}
-                self={self}
-                channelName={selfChannelName}
+                self={active.status === 'connected' ? self : undefined}
+                channelName={active.status === 'connected' ? selfChannelName : undefined}
                 onToggleMic={toggleMic}
                 onToggleDeaf={toggleDeaf}
                 onSettings={() => setDialog({ kind: 'settings' })}
+                onLeave={
+                  active.status === 'connected' || active.status === 'connecting'
+                    ? () => disconnect(active.config.id)
+                    : undefined
+                }
               />
             </div>
 

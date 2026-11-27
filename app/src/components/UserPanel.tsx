@@ -1,4 +1,4 @@
-import { Headphones, HeadphoneOff, Mic, MicOff, Settings } from 'lucide-react';
+import { Headphones, HeadphoneOff, Mic, MicOff, PhoneOff, Settings } from 'lucide-react';
 import { useSettings } from '../settings';
 import type { Client } from '../types';
 import { Avatar } from './Avatar';
@@ -10,9 +10,11 @@ interface Props {
   onToggleMic: () => void;
   onToggleDeaf: () => void;
   onSettings: () => void;
+  /** Leaves the voice connection. Shown only while connected. */
+  onLeave?: () => void;
 }
 
-export function UserPanel({ nickname, self, channelName, onToggleMic, onToggleDeaf, onSettings }: Props) {
+export function UserPanel({ nickname, self, channelName, onToggleMic, onToggleDeaf, onSettings, onLeave }: Props) {
   const { t, status } = useSettings();
   const statusLabel = {
     online: t('statusOnline'),
@@ -61,6 +63,16 @@ export function UserPanel({ nickname, self, channelName, onToggleMic, onToggleDe
         <button className="icon-btn" onClick={onSettings} title={t('settings')} aria-label={t('settings')}>
           <Settings size={18} />
         </button>
+        {onLeave && (
+          <button
+            className="icon-btn leave"
+            onClick={onLeave}
+            title={t('leaveVoice')}
+            aria-label={t('leaveVoice')}
+          >
+            <PhoneOff size={18} />
+          </button>
+        )}
       </div>
     </div>
   );

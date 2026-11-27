@@ -125,7 +125,7 @@ export function ChannelPane({
           </div>
         )}
 
-        {server.status === 'disconnected' && !snap && (
+        {server.status === 'disconnected' && (
           <div className="state-box">
             <p>{t('disconnected')}</p>
             <button className="btn small primary" onClick={onReconnect}>
