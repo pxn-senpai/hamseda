@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AudioLines, MoreVertical, Plus, Search, Settings, Copy } from 'lucide-react';
+import { ArrowRight, Copy, MoreVertical, Plus, Search, Settings, Sparkles } from 'lucide-react';
+import { getVersion } from '@tauri-apps/api/app';
 import { useSettings } from '../settings';
 import type { UserStatus, TransmitSetting } from '../settings';
 import type { ServerConfig, ServerState } from '../types';
 import { Avatar } from './Avatar';
+import { CHANGELOG } from '../lib/changelog';
 
 type Filter = 'all' | 'online' | 'offline';
 
@@ -14,7 +16,6 @@ interface Props {
   onAdd: () => void;
   onEdit: (config: ServerConfig) => void;
   onRemove: (id: string) => void;
-  onDemo: () => void;
   nickname: string;
   onSettings: () => void;
 }
@@ -43,8 +44,65 @@ function gradientFor(id: string): string {
   return GRADIENTS[h % GRADIENTS.length];
 }
 
-/** Full profile for when you are not in a server: status, voice mode and quick actions. */
-function ProfilePanel({ nickname, onSettings }: { nickname: string; onSettings: () => void }) {
+/** Shown once after the app is updated: the new version and what changed. */
+function UpdateBanner() {
+  const { t, lang } = useSettings();
+  const [version, setVersion] = useState('');
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    getVersion()
+      .then((v) => {
+        setVersion(v);
+        let seen: string | null = null;
+        try {
+          seen = localStorage.getItem('hamseda.seenVersion');
+        } catch {
+          seen = null;
+        }
+        if (seen !== v) setShow(true);
+      })
+      .catch(() => setVersion(''));
+  }, []);
+
+  if (!show || !version) return null;
+  const notes = CHANGELOG[version]?.[lang === 'fa' ? 'fa' : 'en'] ?? [];
+
+  const dismiss = () => {
+    try {
+      localStorage.setItem('hamseda.seenVersion', version);
+    } catch {
+      /* storage blocked: the banner may show again next time */
+    }
+    setShow(false);
+  };
+
+  return (
+    <section className="srv-welcome">
+      <div className="srv-welcome-icon">
+        <Sparkles size={22} />
+      </div>
+      <div className="srv-welcome-body">
+        <h2>
+          {t('updWelcome')} <span dir="ltr">{version}</span>
+        </h2>
+        {notes.length > 0 && (
+          <ul>
+            {notes.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <button type="button" className="btn small primary" onClick={dismiss}>
+        {t('updGot')}
+      </button>
+    </section>
+  );
+}
+
+/** Full profile page: status, voice mode, copy name and settings. */
+function ProfilePage({ nickname, onBack, onSettings }: { nickname: string; onBack: () => void; onSettings: () => void }) {
   const { t, status, setStatus, transmit, setTransmit } = useSettings();
   const [copied, setCopied] = useState(false);
   const statuses: { id: UserStatus; label: string; color: string }[] = [
@@ -57,91 +115,93 @@ function ProfilePanel({ nickname, onSettings }: { nickname: string; onSettings: 
     { id: 'voice', label: t('transmitVoice') },
     { id: 'ptt', label: t('transmitPtt') },
   ];
+  const current = statuses.find((s) => s.id === status) ?? statuses[0];
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(nickname);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* clipboard blocked: the name is still on screen */
+      /* clipboard blocked */
     }
   };
-  const current = statuses.find((s) => s.id === status) ?? statuses[0];
 
   return (
-    <section className="srv-profile" aria-label={t('srvProfile')}>
-      <div className="srv-profile-head">
-        <div className="srv-profile-avatar">
-          <Avatar name={nickname} size={52} />
-          <span className="srv-profile-dot" style={{ background: current.color }} />
-        </div>
-        <div className="srv-profile-name">
-          <strong>{nickname}</strong>
-          <span>{current.label}</span>
-        </div>
-        <button type="button" className="icon-btn" onClick={copy} aria-label={t('copyName')} title={t('copyName')}>
-          {copied ? <span className="srv-copied">{t('copied')}</span> : <Copy size={16} />}
+    <main className="srv-home srv-page">
+      <header className="srv-page-head">
+        <button type="button" className="srv-back" onClick={onBack}>
+          <ArrowRight size={16} /> {t('profileBack')}
         </button>
-        <button type="button" className="icon-btn" onClick={onSettings} aria-label={t('settings')} title={t('settings')}>
-          <Settings size={16} />
-        </button>
-      </div>
+        <h1>{t('srvProfile')}</h1>
+      </header>
 
-      <div className="srv-profile-row">
-        <span className="srv-profile-label">{t('status')}</span>
-        <div className="srv-seg" role="radiogroup" aria-label={t('status')}>
-          {statuses.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              role="radio"
-              aria-checked={status === s.id}
-              className={status === s.id ? 'on' : ''}
-              onClick={() => setStatus(s.id)}
-            >
-              <i className="srv-status-dot" style={{ background: s.color }} />
-              {s.label}
+      <section className="srv-profile-card">
+        <div className="srv-profile-hero">
+          <div className="srv-profile-avatar">
+            <Avatar name={nickname} size={84} />
+            <span className="srv-profile-dot" style={{ background: current.color }} />
+          </div>
+          <div className="srv-profile-name">
+            <strong>{nickname}</strong>
+            <span>{current.label}</span>
+          </div>
+          <div className="srv-profile-tools">
+            <button type="button" className="srv-tool" onClick={copy}>
+              <Copy size={15} /> {copied ? t('copied') : t('copyName')}
             </button>
-          ))}
+            <button type="button" className="srv-tool" onClick={onSettings}>
+              <Settings size={15} /> {t('settings')}
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="srv-profile-row">
-        <span className="srv-profile-label">{t('transmitMode')}</span>
-        <div className="srv-seg" role="radiogroup" aria-label={t('transmitMode')}>
-          {modes.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              role="radio"
-              aria-checked={transmit === m.id}
-              className={transmit === m.id ? 'on' : ''}
-              onClick={() => setTransmit(m.id)}
-            >
-              {m.label}
-            </button>
-          ))}
+        <div className="srv-profile-row">
+          <span className="srv-profile-label">{t('status')}</span>
+          <div className="srv-seg" role="radiogroup" aria-label={t('status')}>
+            {statuses.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                role="radio"
+                aria-checked={status === s.id}
+                className={status === s.id ? 'on' : ''}
+                onClick={() => setStatus(s.id)}
+              >
+                <i className="srv-status-dot" style={{ background: s.color }} />
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+
+        <div className="srv-profile-row">
+          <span className="srv-profile-label">{t('transmitMode')}</span>
+          <div className="srv-seg" role="radiogroup" aria-label={t('transmitMode')}>
+            {modes.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                role="radio"
+                aria-checked={transmit === m.id}
+                className={transmit === m.id ? 'on' : ''}
+                onClick={() => setTransmit(m.id)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
 
-/** Home screen: welcome, the list of saved servers as square cards, and your profile. */
-export function ServerHome({
-  servers,
-  onOpen,
-  onConnect,
-  onAdd,
-  onEdit,
-  onRemove,
-  onDemo,
-  nickname,
-  onSettings,
-}: Props) {
+/** Home screen: the update notice, the list of saved servers and a link to your profile. */
+export function ServerHome({ servers, onOpen, onConnect, onAdd, onEdit, onRemove, nickname, onSettings }: Props) {
   const { t } = useSettings();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [page, setPage] = useState<'home' | 'profile'>('home');
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [confirmFor, setConfirmFor] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -181,6 +241,10 @@ export function ServerHome({
     });
   }, [servers, query, filter]);
 
+  if (page === 'profile') {
+    return <ProfilePage nickname={nickname} onBack={() => setPage('home')} onSettings={onSettings} />;
+  }
+
   const filters: { id: Filter; label: string }[] = [
     { id: 'all', label: t('srvAll') },
     { id: 'online', label: t('srvOnline') },
@@ -189,21 +253,7 @@ export function ServerHome({
 
   return (
     <main className="srv-home">
-      <section className="srv-welcome">
-        <AudioLines size={34} />
-        <div>
-          <h2>{t('welcomeTitle')}</h2>
-          <p>{t('welcomeText')}</p>
-        </div>
-        <div className="srv-welcome-actions">
-          <button type="button" className="btn primary small" onClick={onAdd}>
-            {t('addServer')}
-          </button>
-          <button type="button" className="btn small" onClick={onDemo}>
-            {t('tryDemo')}
-          </button>
-        </div>
-      </section>
+      <UpdateBanner />
 
       <header className="srv-top">
         <div className="srv-title">
@@ -215,6 +265,15 @@ export function ServerHome({
             <div className="srv-sub">
               {connectedCount} {t('srvConnectedCount')}
             </div>
+          </div>
+          <div className="srv-title-actions">
+            <button type="button" className="srv-profile-btn" onClick={() => setPage('profile')}>
+              <Avatar name={nickname} size={30} />
+              <span>{t('srvProfile')}</span>
+            </button>
+            <button type="button" className="srv-add-btn" onClick={onAdd}>
+              <Plus size={16} /> {t('addServer')}
+            </button>
           </div>
         </div>
 
@@ -370,8 +429,6 @@ export function ServerHome({
           <span>{t('srvAddNew')}</span>
         </button>
       </div>
-
-      <ProfilePanel nickname={nickname} onSettings={onSettings} />
     </main>
   );
 }

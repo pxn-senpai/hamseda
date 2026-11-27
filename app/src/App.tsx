@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AudioLines, PlugZap } from 'lucide-react';
+import { PlugZap } from 'lucide-react';
 import { IS_DESKTOP, useBridge } from './bridge';
 import { useSettings } from './settings';
 import type { ServerConfig } from './types';
@@ -23,6 +23,7 @@ import { SettingsDialog } from './components/SettingsDialog';
 import { useVoiceSounds } from './useVoiceSounds';
 import { playMention } from './sounds';
 import { QuickSwitch } from './components/QuickSwitch';
+import { Splash } from './components/Splash';
 import { mentions } from './components/ChatArea';
 import type { ChatMessage } from './types';
 
@@ -49,6 +50,7 @@ export function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<Record<string, number>>({});
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [showSplash, setShowSplash] = useState(true);
 
   const list = useMemo(() => Object.values(servers), [servers]);
   const active = activeId ? servers[activeId] : undefined;
@@ -213,6 +215,18 @@ export function App() {
 
   const selfChannelName = snap?.channels.find((c) => c.id === self?.channelId)?.name;
 
+  // Leave only the voice channel: move to the server's first top-level channel.
+  // Staying connected keeps the server open. TeamSpeak has no plain "leave" command.
+  const leaveVoice = (server: typeof active) => {
+    if (!server?.snapshot) return;
+    const top = server.snapshot.channels
+      .filter((c) => c.parentId === 0 && !c.isSpacer)
+      .sort((x, y) => x.order - y.order)[0];
+    if (top && canInteract) send({ type: 'joinChannel', connId: server.config.id, channelId: top.id });
+  };
+
+  if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
+
   return (
     <div className="app">
       {!bridgeUp && (
@@ -231,48 +245,7 @@ export function App() {
           onAdd={() => setDialog({ kind: 'connect' })}
         />
 
-        {!active && list.length === 0 && (
-          <main className="welcome">
-            <AudioLines size={56} />
-            <h1>{t('welcomeTitle')}</h1>
-            <p>{t('welcomeText')}</p>
-            <div className="welcome-actions">
-              <button
-                className="btn primary"
-                onClick={() => setDialog({ kind: 'connect' })}
-              >
-                {t('addServer')}
-              </button>
-              <button
-                className="btn"
-                onClick={() =>
-                  submitConfig({
-                    id: crypto.randomUUID(),
-                    mode: 'demo',
-                    name: 'Night Owls (demo)',
-                    address: 'demo.local',
-                    port: 9987,
-                    nickname: 'Guest',
-                    query: { port: 10011, protocol: 'raw' },
-                  })
-                }
-              >
-                {t('tryDemo')}
-              </button>
-            </div>
-            <small className="stage-note">{t('stageNote')}</small>
-            <div className="welcome-user">
-              <UserPanel
-                nickname="Guest"
-                onToggleMic={() => {}}
-                onToggleDeaf={() => {}}
-                onSettings={() => setDialog({ kind: 'settings' })}
-              />
-            </div>
-          </main>
-        )}
-
-        {!active && list.length > 0 && (
+        {!active && (
           <ServerHome
             servers={list}
             onOpen={(id) => setActiveId(id)}
@@ -282,17 +255,6 @@ export function App() {
             onSettings={() => setDialog({ kind: 'settings' })}
             onEdit={(config) => setDialog({ kind: 'connect', editing: config })}
             onRemove={(id) => remove(id)}
-            onDemo={() =>
-              submitConfig({
-                id: crypto.randomUUID(),
-                mode: 'demo',
-                name: 'Night Owls (demo)',
-                address: 'demo.local',
-                port: 9987,
-                nickname: 'Guest',
-                query: { port: 10011, protocol: 'raw' },
-              })
-            }
           />
         )}
 
@@ -324,8 +286,8 @@ export function App() {
                 onToggleDeaf={toggleDeaf}
                 onSettings={() => setDialog({ kind: 'settings' })}
                 onLeave={
-                  active.status === 'connected' || active.status === 'connecting'
-                    ? () => disconnect(active.config.id)
+                  active.status === 'connected' && self
+                    ? () => leaveVoice(active)
                     : undefined
                 }
               />

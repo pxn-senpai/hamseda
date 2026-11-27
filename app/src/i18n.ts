@@ -2,6 +2,9 @@ export type Lang = 'fa' | 'en';
 
 const en = {
   appName: 'Hamseda',
+  profileBack: 'Back',
+  updWelcome: 'Welcome to version',
+  updGot: 'Got it',
   addServer: 'Add a server',
   srvMy: 'My servers',
   leaveVoice: 'Leave voice',
@@ -163,6 +166,9 @@ export type Key = keyof typeof en;
 
 const fa: Record<Key, string> = {
   appName: 'هم‌صدا',
+  profileBack: 'بازگشت',
+  updWelcome: 'خوش‌آمدید به نسخه',
+  updGot: 'متوجه شدم',
   addServer: 'افزودن سرور',
   srvMy: 'سرورهای من',
   leaveVoice: 'خروج از ویس',
