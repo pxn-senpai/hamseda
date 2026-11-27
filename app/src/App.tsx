@@ -215,14 +215,21 @@ export function App() {
 
   const selfChannelName = snap?.channels.find((c) => c.id === self?.channelId)?.name;
 
-  // Leave only the voice channel: move to the server's first top-level channel.
-  // Staying connected keeps the server open. TeamSpeak has no plain "leave" command.
-  const leaveVoice = (server: typeof active) => {
-    if (!server?.snapshot) return;
-    const top = server.snapshot.channels
-      .filter((c) => c.parentId === 0 && !c.isSpacer)
+  // Leave only the voice channel: move to another open top-level channel.
+  // The server stays connected. TeamSpeak has no plain "leave voice" command,
+  // so we move to another channel. Skip the current one, since joining it does nothing.
+  const leaveVoice = (server: ServerState) => {
+    const snapNow = server.snapshot;
+    if (!snapNow) return;
+    const me = snapNow.clients.find((c) => c.isSelf);
+    const next = snapNow.channels
+      .filter((c) => c.parentId === 0 && !c.isSpacer && !c.password && c.id !== me?.channelId)
       .sort((x, y) => x.order - y.order)[0];
-    if (top && canInteract) send({ type: 'joinChannel', connId: server.config.id, channelId: top.id });
+    if (!next) {
+      showToast(t('leaveNoChannel'));
+      return;
+    }
+    send({ type: 'joinChannel', connId: server.config.id, channelId: next.id });
   };
 
   if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
