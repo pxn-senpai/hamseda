@@ -4,6 +4,7 @@ import { IS_DESKTOP, useBridge } from './bridge';
 import { useSettings } from './settings';
 import type { ServerConfig } from './types';
 import { ServerRail } from './components/ServerRail';
+import { ServerHome } from './components/ServerHome';
 import { ChannelPane } from './components/ChannelPane';
 import { ChatArea } from './components/ChatArea';
 import { PrivateChats } from './components/PrivateChats';
@@ -230,7 +231,7 @@ export function App() {
           onAdd={() => setDialog({ kind: 'connect' })}
         />
 
-        {!active && (
+        {!active && list.length === 0 && (
           <main className="welcome">
             <AudioLines size={56} />
             <h1>{t('welcomeTitle')}</h1>
@@ -269,6 +270,15 @@ export function App() {
               />
             </div>
           </main>
+        )}
+
+        {!active && list.length > 0 && (
+          <ServerHome
+            servers={list}
+            onOpen={(id) => setActiveId(id)}
+            onConnect={(s) => connect(s.config)}
+            onAdd={() => setDialog({ kind: 'connect' })}
+          />
         )}
 
         {active && (
