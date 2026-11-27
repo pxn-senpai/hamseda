@@ -25,12 +25,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     audioOutput,
     setAudioInput,
     setAudioOutput,
-    sounds,
-    setSounds,
-    botNames,
-    setBotNames,
   } = useSettings();
-  const [botText, setBotText] = useState(botNames.join('\n'));
   const [devices, setDevices] = useState<AudioDevices>({ inputs: [], outputs: [] });
 
   useEffect(() => {
@@ -56,7 +51,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
       <div className="form">
         <div className="field">
           <span>{t('theme')}</span>
-          <div className="segmented" role="radiogroup" aria-label={t('theme')}>
+          <div className="segmented wrap" role="radiogroup" aria-label={t('theme')}>
             {themes.map((x) => (
               <button
                 key={x.id}
@@ -150,29 +145,6 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             </select>
           </label>
           <p className="hint">{t('audioNote')}</p>
-        </div>
-
-        <div className="field">
-          <span>{t('soundsLabel')}</span>
-          <label className="check-row">
-            <input type="checkbox" checked={sounds} onChange={(e) => setSounds(e.target.checked)} />
-            {t('soundsNote')}
-          </label>
-        </div>
-
-        <div className="field">
-          <span>{t('botNamesLabel')}</span>
-          <textarea
-            className="bot-names"
-            dir="ltr"
-            rows={3}
-            value={botText}
-            onChange={(e) => setBotText(e.target.value)}
-            onBlur={() =>
-              setBotNames(botText.split('\n').map((x) => x.trim()).filter(Boolean))
-            }
-          />
-          <p className="hint">{t('botNamesNote')}</p>
         </div>
 
         <div className="field">

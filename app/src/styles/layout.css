@@ -1592,3 +1592,8 @@ kbd {
   padding: 10px;
   color: var(--text-faint);
 }
+
+/* Theme choices: wrap and share the row, so five themes fit the dialog */
+.segmented.wrap button {
+  flex: 1 1 auto;
+}
