@@ -1316,3 +1316,123 @@ kbd {
 .channel-users li .u-name {
   font-size: 13px;
 }
+
+/* Emoji and GIF pickers above the chat input */
+.composer {
+  position: relative;
+}
+.emoji-pop {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  inset-inline-start: 0;
+  z-index: 40;
+  width: 300px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--bg-modal);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  animation: pop 0.18s var(--ease);
+}
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.emoji-btn {
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 19px;
+  cursor: pointer;
+}
+.emoji-btn:hover {
+  background: var(--bg-hover);
+}
+.gif-pop {
+  width: 340px;
+}
+.gif-btn {
+  flex: none;
+  align-self: center;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.gif-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.gif-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: var(--bg-input);
+}
+.gif-search input,
+.gif-key input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+.gif-key {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.gif-key input {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg-input);
+}
+.gif-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.gif-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.gif-item {
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-input);
+  cursor: pointer;
+}
+.gif-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.msg-gif {
+  display: block;
+  max-width: 280px;
+  max-height: 220px;
+  border-radius: 10px;
+  margin-top: 4px;
+}

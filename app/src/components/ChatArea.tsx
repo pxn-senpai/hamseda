@@ -1,10 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
-import { Hash, SendHorizontal } from 'lucide-react';
+import { Hash, SmilePlus, SendHorizontal } from 'lucide-react';
 import { useSettings } from '../settings';
 import { formatDay, formatTime } from '../lib/util';
 import type { Channel, ChatMessage } from '../types';
 import { Avatar } from './Avatar';
+import { EmojiPicker } from './EmojiPicker';
+import { GifPicker } from './GifPicker';
+
+/** A message that is only a link to a GIF from Giphy is shown as the picture. */
+function gifUrl(text: string): string | null {
+  const t = text.trim();
+  if (/\s/.test(t) || !t.startsWith('https://')) return null;
+  try {
+    const u = new URL(t);
+    return /(^|\.)giphy\.com$/.test(u.hostname) && /\.gif$/i.test(u.pathname) ? u.href : null;
+  } catch {
+    return null;
+  }
+}
 
 interface Props {
   channel: Channel | null;
@@ -20,6 +34,22 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend, privateWi
   const { t, lang } = useSettings();
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [panel, setPanel] = useState<'emoji' | 'gif' | null>(null);
+  const closePanel = useCallback(() => setPanel(null), []);
+
+  // Put text where the cursor is, then move the cursor after it.
+  const insertText = (text: string) => {
+    const el = inputRef.current;
+    const start = el?.selectionStart ?? draft.length;
+    const end = el?.selectionEnd ?? draft.length;
+    const next = draft.slice(0, start) + text + draft.slice(end);
+    setDraft(next);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(start + text.length, start + text.length);
+    });
+  };
 
   // Keep the newest message in view.
   useEffect(() => {
@@ -97,7 +127,11 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend, privateWi
                     </header>
                   )}
                   {/* React escapes the text, so a message can never inject HTML. dir="auto" picks RTL or LTR per message. */}
-                  <p dir="auto">{m.text}</p>
+                  {gifUrl(m.text) ? (
+                    <img className="msg-gif" src={gifUrl(m.text)!} alt="GIF" loading="lazy" />
+                  ) : (
+                    <p dir="auto">{m.text}</p>
+                  )}
                 </div>
               </article>
             </div>
@@ -107,7 +141,38 @@ export function ChatArea({ channel, messages, selfId, canSend, onSend, privateWi
       </div>
 
       <form className="composer" onSubmit={submit}>
+        {panel === 'emoji' && <EmojiPicker onPick={(e) => insertText(e)} onClose={closePanel} />}
+        {panel === 'gif' && (
+          <GifPicker
+            onPick={(url) => {
+              onSend(url);
+              setPanel(null);
+            }}
+            onClose={closePanel}
+          />
+        )}
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label={t('emoji')}
+          title={t('emoji')}
+          disabled={!canSend}
+          onClick={() => setPanel((p) => (p === 'emoji' ? null : 'emoji'))}
+        >
+          <SmilePlus size={18} />
+        </button>
+        <button
+          type="button"
+          className="gif-btn"
+          aria-label={t('gif')}
+          title={t('gif')}
+          disabled={!canSend}
+          onClick={() => setPanel((p) => (p === 'gif' ? null : 'gif'))}
+        >
+          GIF
+        </button>
         <textarea
+          ref={inputRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
