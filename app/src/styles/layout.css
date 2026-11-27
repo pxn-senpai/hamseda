@@ -1268,3 +1268,67 @@ kbd {
   color: var(--good);
   background: rgb(35 165 90 / 0.14);
 }
+
+/* Channel tree: right side, between the chat and the members */
+.channels-col {
+  width: 260px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-pane);
+  border-inline-start: 1px solid var(--border);
+}
+.left-col > :first-child {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Voice channels: cards with a live user list */
+.channel {
+  margin-bottom: 2px;
+  padding: 7px 10px;
+  font-weight: 600;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.channel > svg {
+  flex: none;
+  padding: 4px;
+  box-sizing: content-box;
+  border-radius: 6px;
+  background: var(--bg-hover);
+}
+.channel.joined {
+  background: rgb(35 165 90 / 0.1);
+}
+.channel.joined > svg {
+  color: var(--good);
+  background: rgb(35 165 90 / 0.18);
+}
+.channel.selected.joined {
+  background: rgb(35 165 90 / 0.16);
+}
+.channel .count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  font-weight: 600;
+}
+.channel-users {
+  margin: 0 0 8px;
+  border-inline-start: 2px solid var(--border);
+  margin-inline-start: 18px;
+}
+.channel-users li {
+  margin: 1px 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s var(--ease);
+}
+.channel-users li:hover {
+  background: var(--bg-hover);
+}
+.channel-users li .u-name {
+  font-size: 13px;
+}
