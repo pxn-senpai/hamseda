@@ -276,7 +276,11 @@ export function App() {
                 clients={snap.clients}
                 groups={snap.groups}
                 channels={snap.channels}
+                privateMessages={active.privateMessages}
                 onMessage={(id) => setPmWith(id)}
+                onJoinChannel={(id) => {
+                  if (canInteract) send({ type: 'joinChannel', connId: active.config.id, channelId: id });
+                }}
               />}
           </>
         )}

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Headphones, MicOff, MoonStar } from 'lucide-react';
 import { useSettings } from '../settings';
 import { roleColor } from '../lib/util';
-import type { Channel, Client, Group } from '../types';
+import type { Channel, ChatMessage, Client, Group } from '../types';
 import { Avatar } from './Avatar';
 import { ProfileCard } from './ProfileCard';
 
@@ -10,7 +10,10 @@ interface Props {
   clients: Client[];
   groups: Group[];
   channels: Channel[];
+  /** Private conversations, by client id (for the last message shown in the panel). */
+  privateMessages?: Record<number, ChatMessage[]>;
   onMessage?: (clientId: number) => void;
+  onJoinChannel?: (channelId: number) => void;
 }
 
 interface Section {
@@ -26,7 +29,7 @@ function isBot(c: Client, botNames: string[]): boolean {
   return botNames.some((n) => n.trim().toLowerCase() === nick);
 }
 
-export function MemberList({ clients, groups, channels, onMessage }: Props) {
+export function MemberList({ clients, groups, channels, privateMessages, onMessage, onJoinChannel }: Props) {
   const { t, botNames } = useSettings();
   const [open, setOpen] = useState<{ client: Client; anchor: DOMRect } | null>(null);
 
@@ -34,7 +37,7 @@ export function MemberList({ clients, groups, channels, onMessage }: Props) {
     const sorted = [...groups].sort((a, b) => a.sortId - b.sortId);
     const rank = new Map(sorted.map((g, i) => [g.id, i]));
 
-    // Each person is listed once, under their most important role (like Discord's "hoisted" roles).
+    // Each person is listed once, under their most important role.
     const buckets = new Map<number | 'none', Section>();
     const people = clients.filter((c) => !isBot(c, botNames));
     const bots = clients.filter((c) => isBot(c, botNames));
@@ -72,6 +75,8 @@ export function MemberList({ clients, groups, channels, onMessage }: Props) {
   }, [clients, groups, botNames, t]);
 
   const channelName = (id: number) => channels.find((c) => c.id === id)?.name ?? '';
+  const myChannel = clients.find((c) => c.isSelf)?.channelId;
+  const openClient = open?.client;
 
   return (
     <aside className="members" aria-label={t('members')}>
@@ -105,16 +110,26 @@ export function MemberList({ clients, groups, channels, onMessage }: Props) {
         </section>
       ))}
 
-      {open && (
+      {open && openClient && (
         <ProfileCard
-          client={open.client}
-          channelName={channelName(open.client.channelId)}
-          isBot={isBot(open.client, botNames)}
+          client={openClient}
+          channelName={channelName(openClient.channelId)}
+          isBot={isBot(openClient, botNames)}
+          sameChannel={myChannel !== undefined && myChannel === openClient.channelId}
+          lastPrivate={privateMessages?.[openClient.id]?.at(-1)?.text}
           anchor={open.anchor}
           onMessage={
             onMessage
               ? () => {
-                  onMessage(open.client.id);
+                  onMessage(openClient.id);
+                  setOpen(null);
+                }
+              : undefined
+          }
+          onJoin={
+            onJoinChannel
+              ? () => {
+                  onJoinChannel(openClient.channelId);
                   setOpen(null);
                 }
               : undefined

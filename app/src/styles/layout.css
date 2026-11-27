@@ -1245,3 +1245,26 @@ kbd {
   width: 100%;
   margin-top: 4px;
 }
+
+/* User panel: status, fields and actions */
+.profile-fields {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+.profile-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.chip.good {
+  color: var(--good);
+  background: rgb(35 165 90 / 0.14);
+}

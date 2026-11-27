@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Bot, Headphones, MicOff, MoonStar, Volume2 } from 'lucide-react';
+import { Bot, Check, Copy, Headphones, Hash, MessageCircle, MicOff, MoonStar, Volume2 } from 'lucide-react';
 import { useSettings } from '../settings';
 import { avatarColor } from '../lib/util';
 import type { Client } from '../types';
@@ -9,26 +9,41 @@ interface Props {
   client: Client;
   channelName: string;
   isBot: boolean;
+  /** The person is in the channel we are in. */
+  sameChannel: boolean;
+  /** Text of the last private message with them, if any. */
+  lastPrivate?: string;
   /** Where the member row is on screen; the card opens next to it. */
   anchor: DOMRect;
-  /** Opens a private conversation with this person. */
   onMessage?: () => void;
+  onJoin?: () => void;
   onClose: () => void;
 }
 
-const WIDTH = 288;
+const WIDTH = 300;
 const GAP = 10;
 const EDGE = 8;
 
-/** A small profile card that opens next to a member's row. */
-export function ProfileCard({ client, channelName, isBot, anchor, onMessage, onClose }: Props) {
+/** The user panel: a card with a person's status, channel, last private message and actions. */
+export function ProfileCard({
+  client,
+  channelName,
+  isBot,
+  sameChannel,
+  lastPrivate,
+  anchor,
+  onMessage,
+  onJoin,
+  onClose,
+}: Props) {
   const { t } = useSettings();
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Open to the side of the row that has room, then keep the card inside the window.
   useLayoutEffect(() => {
-    const height = ref.current?.offsetHeight ?? 220;
+    const height = ref.current?.offsetHeight ?? 320;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     let left = anchor.right + GAP;
@@ -38,7 +53,7 @@ export function ProfileCard({ client, channelName, isBot, anchor, onMessage, onC
     setPos({ left, top });
   }, [anchor]);
 
-  // Close on Escape, on a click outside, or when the window scrolls or resizes.
+  // Close on Escape, on a click outside, or when the window resizes.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     const onDown = (e: MouseEvent) => {
@@ -54,7 +69,18 @@ export function ProfileCard({ client, channelName, isBot, anchor, onMessage, onC
     };
   }, [onClose]);
 
+  const copyName = async () => {
+    try {
+      await navigator.clipboard.writeText(client.nickname);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // The clipboard can be blocked; the name is still on screen.
+    }
+  };
+
   const status = client.away ? 'away' : 'online';
+  const isSelf = client.isSelf;
 
   return (
     <div
@@ -73,7 +99,7 @@ export function ProfileCard({ client, channelName, isBot, anchor, onMessage, onC
       <div className="profile-body">
         <h3 className="profile-name">
           <span>{client.nickname}</span>
-          {client.isSelf && <span className="badge">{t('profileYou')}</span>}
+          {isSelf && <span className="badge">{t('profileYou')}</span>}
           {isBot && (
             <span className="badge bot">
               <Bot size={12} /> {t('profileBot')}
@@ -103,19 +129,46 @@ export function ProfileCard({ client, channelName, isBot, anchor, onMessage, onC
 
         {client.awayMessage && <p className="profile-quote">{client.awayMessage}</p>}
 
-        <div className="profile-field">
-          <span className="profile-label">{t('profileChannel')}</span>
-          <span className="profile-value">
-            <Volume2 size={14} />
-            {channelName || '—'}
-          </span>
+        <div className="profile-fields">
+          <div className="profile-field">
+            <span className="profile-label">{t('profileChannel')}</span>
+            <span className="profile-value">
+              <Volume2 size={14} />
+              {channelName || '—'}
+              {sameChannel && !isSelf && <span className="chip good">{t('inYourChannel')}</span>}
+            </span>
+          </div>
+          <div className="profile-field">
+            <span className="profile-label">ID</span>
+            <span className="profile-value">
+              <Hash size={14} />
+              {client.id}
+            </span>
+          </div>
         </div>
 
-        {onMessage && !client.isSelf && (
-          <button type="button" className="btn primary profile-action" onClick={onMessage}>
-            {t('sendPrivate')}
-          </button>
+        {lastPrivate && (
+          <div className="profile-field">
+            <span className="profile-label">{t('lastPrivate')}</span>
+            <p className="profile-quote">{lastPrivate}</p>
+          </div>
         )}
+
+        <div className="profile-actions">
+          {!isSelf && onMessage && (
+            <button type="button" className="btn primary small" onClick={onMessage}>
+              <MessageCircle size={14} /> {t('sendPrivate')}
+            </button>
+          )}
+          {!isSelf && !sameChannel && onJoin && (
+            <button type="button" className="btn small" onClick={onJoin}>
+              {t('goToChannel')}
+            </button>
+          )}
+          <button type="button" className="btn small" onClick={copyName}>
+            {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? t('copied') : t('copyName')}
+          </button>
+        </div>
       </div>
     </div>
   );
