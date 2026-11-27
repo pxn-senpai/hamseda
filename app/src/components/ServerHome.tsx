@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Copy, MoreVertical, Plus, Search, Settings, Sparkles } from 'lucide-react';
+import { ArrowRight, Copy, ImagePlus, MoreVertical, Plus, Search, Settings, Sparkles, X } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
 import { useSettings } from '../settings';
-import type { UserStatus, TransmitSetting } from '../settings';
+import type { UserStatus } from '../settings';
 import type { ServerConfig, ServerState } from '../types';
 import { Avatar } from './Avatar';
 import { CHANGELOG } from '../lib/changelog';
@@ -116,7 +116,7 @@ function ProfilePage({
   onBack: () => void;
   onSettings: () => void;
 }) {
-  const { t, status, setStatus, transmit, setTransmit } = useSettings();
+  const { t, status, setStatus } = useSettings();
   const [copied, setCopied] = useState(false);
   const [profile, setProfile] = useState<Profile>(() => loadProfile());
   const [draftName, setDraftName] = useState(nickname);
@@ -152,10 +152,6 @@ function ProfilePage({
     { id: 'dnd', label: t('statusDnd'), color: '#ff6b68' },
     { id: 'invisible', label: t('statusInvisible'), color: '#9aa1b2' },
   ];
-  const modes: { id: TransmitSetting; label: string }[] = [
-    { id: 'voice', label: t('transmitVoice') },
-    { id: 'ptt', label: t('transmitPtt') },
-  ];
   const current = statuses.find((s) => s.id === status) ?? statuses[0];
   const copy = async () => {
     try {
@@ -187,13 +183,32 @@ function ProfilePage({
             <span>{current.label}</span>
           </div>
           <div className="srv-profile-tools">
+            <button type="button" className="srv-tool" onClick={() => fileRef.current?.click()}>
+              <ImagePlus size={15} /> {t('profChoosePicture')}
+            </button>
+            {profile.picture && (
+              <button type="button" className="srv-tool" onClick={() => updateProfile({ ...profile, picture: undefined })}>
+                <X size={15} /> {t('profRemovePicture')}
+              </button>
+            )}
             <button type="button" className="srv-tool" onClick={copy}>
               <Copy size={15} /> {copied ? t('copied') : t('copyName')}
             </button>
             <button type="button" className="srv-tool" onClick={onSettings}>
               <Settings size={15} /> {t('settings')}
             </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                pickPicture(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+            />
           </div>
+          {picError && <small className="srv-field-error">{t('profPictureError')}</small>}
         </div>
 
         <div className="srv-profile-edit">
@@ -224,30 +239,6 @@ function ProfilePage({
             />
           </label>
 
-          <div className="srv-field">
-            <span>{t('profPicture')}</span>
-            <div className="srv-field-row">
-              <button type="button" className="btn small" onClick={() => fileRef.current?.click()}>
-                {t('profChoosePicture')}
-              </button>
-              {profile.picture && (
-                <button type="button" className="btn small" onClick={() => updateProfile({ ...profile, picture: undefined })}>
-                  {t('profRemovePicture')}
-                </button>
-              )}
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e) => {
-                  pickPicture(e.target.files?.[0]);
-                  e.target.value = '';
-                }}
-              />
-            </div>
-            {picError && <small className="srv-field-error">{t('profPictureError')}</small>}
-          </div>
         </div>
 
         <div className="srv-profile-row">
@@ -269,23 +260,6 @@ function ProfilePage({
           </div>
         </div>
 
-        <div className="srv-profile-row">
-          <span className="srv-profile-label">{t('transmitMode')}</span>
-          <div className="srv-seg" role="radiogroup" aria-label={t('transmitMode')}>
-            {modes.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                role="radio"
-                aria-checked={transmit === m.id}
-                className={transmit === m.id ? 'on' : ''}
-                onClick={() => setTransmit(m.id)}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
       </section>
     </main>
   );
