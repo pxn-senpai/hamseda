@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { AudioLines, MoreVertical, Plus, Search, Settings, Copy } from 'lucide-react';
 import { useSettings } from '../settings';
-import type { ServerState } from '../types';
-import { UserPanel } from './UserPanel';
+import type { UserStatus, TransmitSetting } from '../settings';
+import type { ServerConfig, ServerState } from '../types';
+import { Avatar } from './Avatar';
 
 type Filter = 'all' | 'online' | 'offline';
 
@@ -11,7 +12,9 @@ interface Props {
   onOpen: (id: string) => void;
   onConnect: (server: ServerState) => void;
   onAdd: () => void;
-  /** Your nickname and the settings button, so settings stay reachable from this screen. */
+  onEdit: (config: ServerConfig) => void;
+  onRemove: (id: string) => void;
+  onDemo: () => void;
   nickname: string;
   onSettings: () => void;
 }
@@ -40,11 +43,107 @@ function gradientFor(id: string): string {
   return GRADIENTS[h % GRADIENTS.length];
 }
 
-/** Home screen with no server open: all bookmarked servers in a grid of square cards. */
-export function ServerHome({ servers, onOpen, onConnect, onAdd, nickname, onSettings }: Props) {
+/** Full profile for when you are not in a server: status, voice mode and quick actions. */
+function ProfilePanel({ nickname, onSettings }: { nickname: string; onSettings: () => void }) {
+  const { t, status, setStatus, transmit, setTransmit } = useSettings();
+  const [copied, setCopied] = useState(false);
+  const statuses: { id: UserStatus; label: string; color: string }[] = [
+    { id: 'online', label: t('statusOnline'), color: '#38d39a' },
+    { id: 'idle', label: t('statusIdle'), color: '#f5b84d' },
+    { id: 'dnd', label: t('statusDnd'), color: '#ff6b68' },
+    { id: 'invisible', label: t('statusInvisible'), color: '#9aa1b2' },
+  ];
+  const modes: { id: TransmitSetting; label: string }[] = [
+    { id: 'voice', label: t('transmitVoice') },
+    { id: 'ptt', label: t('transmitPtt') },
+  ];
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(nickname);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked: the name is still on screen */
+    }
+  };
+  const current = statuses.find((s) => s.id === status) ?? statuses[0];
+
+  return (
+    <section className="srv-profile" aria-label={t('srvProfile')}>
+      <div className="srv-profile-head">
+        <div className="srv-profile-avatar">
+          <Avatar name={nickname} size={52} />
+          <span className="srv-profile-dot" style={{ background: current.color }} />
+        </div>
+        <div className="srv-profile-name">
+          <strong>{nickname}</strong>
+          <span>{current.label}</span>
+        </div>
+        <button type="button" className="icon-btn" onClick={copy} aria-label={t('copyName')} title={t('copyName')}>
+          {copied ? <span className="srv-copied">{t('copied')}</span> : <Copy size={16} />}
+        </button>
+        <button type="button" className="icon-btn" onClick={onSettings} aria-label={t('settings')} title={t('settings')}>
+          <Settings size={16} />
+        </button>
+      </div>
+
+      <div className="srv-profile-row">
+        <span className="srv-profile-label">{t('status')}</span>
+        <div className="srv-seg" role="radiogroup" aria-label={t('status')}>
+          {statuses.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="radio"
+              aria-checked={status === s.id}
+              className={status === s.id ? 'on' : ''}
+              onClick={() => setStatus(s.id)}
+            >
+              <i className="srv-status-dot" style={{ background: s.color }} />
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="srv-profile-row">
+        <span className="srv-profile-label">{t('transmitMode')}</span>
+        <div className="srv-seg" role="radiogroup" aria-label={t('transmitMode')}>
+          {modes.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              role="radio"
+              aria-checked={transmit === m.id}
+              className={transmit === m.id ? 'on' : ''}
+              onClick={() => setTransmit(m.id)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Home screen: welcome, the list of saved servers as square cards, and your profile. */
+export function ServerHome({
+  servers,
+  onOpen,
+  onConnect,
+  onAdd,
+  onEdit,
+  onRemove,
+  onDemo,
+  nickname,
+  onSettings,
+}: Props) {
   const { t } = useSettings();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [confirmFor, setConfirmFor] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Ctrl+K puts the cursor in the search box.
@@ -58,6 +157,17 @@ export function ServerHome({ servers, onOpen, onConnect, onAdd, nickname, onSett
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // A click anywhere else closes the card menu.
+  useEffect(() => {
+    if (!menuFor) return;
+    const close = () => {
+      setMenuFor(null);
+      setConfirmFor(null);
+    };
+    window.addEventListener('mousedown', close);
+    return () => window.removeEventListener('mousedown', close);
+  }, [menuFor]);
 
   const connectedCount = servers.filter((s) => s.status === 'connected').length;
 
@@ -79,6 +189,22 @@ export function ServerHome({ servers, onOpen, onConnect, onAdd, nickname, onSett
 
   return (
     <main className="srv-home">
+      <section className="srv-welcome">
+        <AudioLines size={34} />
+        <div>
+          <h2>{t('welcomeTitle')}</h2>
+          <p>{t('welcomeText')}</p>
+        </div>
+        <div className="srv-welcome-actions">
+          <button type="button" className="btn primary small" onClick={onAdd}>
+            {t('addServer')}
+          </button>
+          <button type="button" className="btn small" onClick={onDemo}>
+            {t('tryDemo')}
+          </button>
+        </div>
+      </section>
+
       <header className="srv-top">
         <div className="srv-title">
           <div>
@@ -90,9 +216,6 @@ export function ServerHome({ servers, onOpen, onConnect, onAdd, nickname, onSett
               {connectedCount} {t('srvConnectedCount')}
             </div>
           </div>
-          <button type="button" className="srv-add-btn" onClick={onAdd}>
-            <Plus size={16} /> {t('addServer')}
-          </button>
         </div>
 
         <div className="srv-tools">
@@ -127,12 +250,62 @@ export function ServerHome({ servers, onOpen, onConnect, onAdd, nickname, onSett
       <div className="srv-grid">
         {shown.map((s) => {
           const tone = toneOf(s.status);
+          const open = menuFor === s.config.id;
           return (
             <div
               key={s.config.id}
               className="srv-card"
               style={{ ['--c' as string]: tone, ['--grad' as string]: gradientFor(s.config.id) }}
             >
+              <button
+                type="button"
+                className="srv-more"
+                aria-label={t('srvMenu')}
+                aria-expanded={open}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfirmFor(null);
+                  setMenuFor(open ? null : s.config.id);
+                }}
+              >
+                <MoreVertical size={14} />
+              </button>
+              {open && (
+                <ul className="srv-menu" role="menu" onMouseDown={(e) => e.stopPropagation()}>
+                  <li>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuFor(null);
+                        onEdit(s.config);
+                      }}
+                    >
+                      {t('srvEdit')}
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="danger"
+                      onClick={() => {
+                        if (confirmFor !== s.config.id) {
+                          setConfirmFor(s.config.id);
+                          return;
+                        }
+                        setMenuFor(null);
+                        setConfirmFor(null);
+                        onRemove(s.config.id);
+                      }}
+                    >
+                      {confirmFor === s.config.id ? t('srvRemoveConfirm') : t('srvRemove')}
+                    </button>
+                  </li>
+                </ul>
+              )}
+
               <div className="srv-avatar-wrap">
                 <div className="srv-avatar">{s.config.name.trim().charAt(0) || '?'}</div>
                 <span className="srv-dot" />
@@ -198,9 +371,7 @@ export function ServerHome({ servers, onOpen, onConnect, onAdd, nickname, onSett
         </button>
       </div>
 
-      <div className="srv-foot">
-        <UserPanel nickname={nickname} onToggleMic={() => {}} onToggleDeaf={() => {}} onSettings={onSettings} />
-      </div>
+      <ProfilePanel nickname={nickname} onSettings={onSettings} />
     </main>
   );
 }

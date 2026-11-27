@@ -280,6 +280,19 @@ export function App() {
             onAdd={() => setDialog({ kind: 'connect' })}
             nickname={list[0]?.config.nickname ?? 'Guest'}
             onSettings={() => setDialog({ kind: 'settings' })}
+            onEdit={(config) => setDialog({ kind: 'connect', editing: config })}
+            onRemove={(id) => remove(id)}
+            onDemo={() =>
+              submitConfig({
+                id: crypto.randomUUID(),
+                mode: 'demo',
+                name: 'Night Owls (demo)',
+                address: 'demo.local',
+                port: 9987,
+                nickname: 'Guest',
+                query: { port: 10011, protocol: 'raw' },
+              })
+            }
           />
         )}
 
