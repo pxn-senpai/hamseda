@@ -1670,6 +1670,35 @@ kbd {
 .srv-profile-btn:hover {
   background: rgba(255, 255, 255, 0.06);
 }
+.srv-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 56px 16px;
+  text-align: center;
+}
+.srv-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 6px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #6d8dff, #9b6bff);
+  color: #fff;
+}
+.srv-empty h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+.srv-empty p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
 .srv-add-btn {
   display: inline-flex;
   align-items: center;

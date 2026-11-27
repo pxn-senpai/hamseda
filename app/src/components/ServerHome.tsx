@@ -425,12 +425,27 @@ export function ServerHome({ servers, onOpen, onConnect, onAdd, onEdit, onRemove
 
         {shown.length === 0 && servers.length > 0 && <p className="srv-none">{t('srvNone')}</p>}
 
+        {servers.length === 0 && (
+          <section className="srv-empty">
+            <div className="srv-empty-icon">
+              <Plus size={26} />
+            </div>
+            <h2>{t('srvEmptyTitle')}</h2>
+            <p>{t('srvEmptyText')}</p>
+            <button type="button" className="srv-add-btn" onClick={onAdd}>
+              <Plus size={16} /> {t('addServer')}
+            </button>
+          </section>
+        )}
+
+        {servers.length > 0 && (
         <button type="button" className="srv-card srv-add-card" onClick={onAdd}>
           <span className="srv-plus">
             <Plus size={22} />
           </span>
           <span>{t('srvAddNew')}</span>
         </button>
+        )}
       </div>
     </main>
   );
