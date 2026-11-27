@@ -10,7 +10,7 @@ interface Props {
   onToggleMic: () => void;
   onToggleDeaf: () => void;
   onSettings: () => void;
-  /** Leaves the voice connection. Shown only while connected. */
+  /** Leaves the server. Shown while connected or connecting. */
   onLeave?: () => void;
 }
 
@@ -67,8 +67,8 @@ export function UserPanel({ nickname, self, channelName, onToggleMic, onToggleDe
           <button
             className="icon-btn leave"
             onClick={onLeave}
-            title={t('leaveVoice')}
-            aria-label={t('leaveVoice')}
+            title={t('leaveServer')}
+            aria-label={t('leaveServer')}
           >
             <PhoneOff size={18} />
           </button>

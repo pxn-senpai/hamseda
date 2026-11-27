@@ -2144,3 +2144,37 @@ kbd {
     animation: none;
   }
 }
+
+/* ---------- leaving a server: the server view fades out, then home fades in ---------- */
+
+.shell.leaving > .left-col,
+.shell.leaving > .chat,
+.shell.leaving > .members {
+  animation: server-out 0.32s ease forwards;
+  pointer-events: none;
+}
+.srv-home {
+  animation: home-in 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes server-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+@keyframes home-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shell.leaving > *,
+  .srv-home {
+    animation: none;
+  }
+}

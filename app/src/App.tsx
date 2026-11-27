@@ -215,21 +215,15 @@ export function App() {
 
   const selfChannelName = snap?.channels.find((c) => c.id === self?.channelId)?.name;
 
-  // Leave only the voice channel: move to another open top-level channel.
-  // The server stays connected. TeamSpeak has no plain "leave voice" command,
-  // so we move to another channel. Skip the current one, since joining it does nothing.
-  const leaveVoice = (server: ServerState) => {
-    const snapNow = server.snapshot;
-    if (!snapNow) return;
-    const me = snapNow.clients.find((c) => c.isSelf);
-    const next = snapNow.channels
-      .filter((c) => c.parentId === 0 && !c.isSpacer && !c.password && c.id !== me?.channelId)
-      .sort((x, y) => x.order - y.order)[0];
-    if (!next) {
-      showToast(t('leaveNoChannel'));
-      return;
-    }
-    send({ type: 'joinChannel', connId: server.config.id, channelId: next.id });
+  // Leave the server: disconnect, play the exit animation, then return to the home screen.
+  const [leaving, setLeaving] = useState(false);
+  const leaveServer = (server: ServerState) => {
+    setLeaving(true);
+    setTimeout(() => {
+      disconnect(server.config.id);
+      setActiveId(null);
+      setLeaving(false);
+    }, 320);
   };
 
   if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
@@ -244,7 +238,7 @@ export function App() {
         </div>
       )}
 
-      <div className="shell">
+      <div className={`shell${leaving ? ' leaving' : ''}`}>
         <ServerRail
           servers={list}
           activeId={activeId}
@@ -293,8 +287,8 @@ export function App() {
                 onToggleDeaf={toggleDeaf}
                 onSettings={() => setDialog({ kind: 'settings' })}
                 onLeave={
-                  active.status === 'connected' && self
-                    ? () => leaveVoice(active)
+                  active.status === 'connected' || active.status === 'connecting'
+                    ? () => leaveServer(active)
                     : undefined
                 }
               />
