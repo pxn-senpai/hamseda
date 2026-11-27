@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PlugZap } from 'lucide-react';
+import { ArrowRight, MessageCircle, PlugZap } from 'lucide-react';
 import { IS_DESKTOP, useBridge } from './bridge';
 import { useSettings } from './settings';
 import type { ServerConfig } from './types';
@@ -44,6 +44,7 @@ export function App() {
   useVoiceSounds(servers);
   // The private conversation on screen (a client id), or null for the channel.
   const [pmWith, setPmWith] = useState<number | null>(null);
+  const [pmPage, setPmPage] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const seenRef = useRef<Set<string>>(new Set());
   const primedRef = useRef(false);
@@ -226,6 +227,10 @@ export function App() {
     }, 320);
   };
 
+  const pmCount = active
+    ? Object.values(active.privateMessages ?? {}).filter((l) => l.length > 0).length
+    : 0;
+
   if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
 
   return (
@@ -259,10 +264,54 @@ export function App() {
           />
         )}
 
-        {active && (
+        {active && pmPage && (
+          <main className="pm-page">
+            <header className="srv-page-head">
+              <button
+                type="button"
+                className="srv-back"
+                onClick={() => {
+                  setPmPage(false);
+                  setPmWith(null);
+                }}
+              >
+                <ArrowRight size={16} /> {t('profileBack')}
+              </button>
+              <h1>{t('privateChats')}</h1>
+            </header>
+            <div className="pm-body">
+              <div className="pm-side">
+                <PrivateChats server={active} selectedId={pmWith} onOpen={(id) => setPmWith(id)} />
+                {pmCount === 0 && <p className="pm-empty">{t('noPrivate')}</p>}
+              </div>
+              {pmWith !== null ? (
+                <ChatArea
+                  channel={null}
+                  selfName={self?.nickname ?? active.config.nickname}
+                  privateWith={personName(active, pmWith)}
+                  messages={active.privateMessages?.[pmWith] ?? []}
+                  selfId={snap?.selfId ?? 0}
+                  canSend={canInteract}
+                  onSend={(text) => {
+                    send({ type: 'sendPrivate', connId: active.config.id, clientId: pmWith, text });
+                    notePrivate(active.config.id, pmWith, text);
+                  }}
+                />
+              ) : (
+                <div className="pm-placeholder">{t('pickPrivate')}</div>
+              )}
+            </div>
+          </main>
+        )}
+
+        {active && !pmPage && (
           <>
             <div className="left-col">
-              <PrivateChats server={active} selectedId={pmWith} onOpen={(id) => setPmWith(id)} />
+              <button type="button" className="pm-open" onClick={() => setPmPage(true)}>
+                <MessageCircle size={16} />
+                <span>{t('privateChats')}</span>
+                {pmCount > 0 && <b>{pmCount}</b>}
+              </button>
               <ChannelPane
               server={active}
               selectedChannelId={channelId}
