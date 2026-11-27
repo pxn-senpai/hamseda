@@ -5,10 +5,21 @@ interface Props {
   size?: number;
   talking?: boolean;
   dim?: boolean;
+  picture?: string;
 }
 
 /** Round letter avatar. TeamSpeak avatars can come later; for now the first letter is enough. */
-export function Avatar({ name, size = 32, talking, dim }: Props) {
+export function Avatar({ name, size = 32, talking, dim, picture }: Props) {
+  if (picture) {
+    return (
+      <img
+        className={`avatar avatar-img${talking ? ' talking' : ''}${dim ? ' dim' : ''}`}
+        src={picture}
+        alt=""
+        style={{ width: size, height: size }}
+      />
+    );
+  }
   return (
     <span
       className={`avatar${talking ? ' talking' : ''}${dim ? ' dim' : ''}`}

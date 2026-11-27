@@ -2275,3 +2275,107 @@ kbd {
   border: 2px solid rgba(0, 0, 0, 0.25);
   box-sizing: content-box;
 }
+
+/* ---------- profile: editable name, bio and picture ---------- */
+
+.srv-profile-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.srv-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.srv-field small {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.srv-field input,
+.srv-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.15);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  resize: vertical;
+}
+.srv-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.srv-field-row input {
+  flex: 1;
+}
+.srv-field-error {
+  color: #ff6b68;
+}
+.avatar-img {
+  border-radius: 50%;
+  object-fit: cover;
+  display: inline-block;
+}
+
+/* ---------- profile page card: centered header, action pills, rows ---------- */
+
+.srv-profile-card {
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--bg-pane);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.srv-profile-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 18px 18px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.srv-profile-name {
+  align-items: center;
+  max-width: 100%;
+}
+.srv-profile-name span {
+  margin-top: 2px;
+}
+.srv-profile-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.srv-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.srv-tool:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.srv-profile-card > .srv-profile-row {
+  padding: 12px 18px;
+}

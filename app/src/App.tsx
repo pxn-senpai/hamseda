@@ -341,6 +341,11 @@ export function App() {
             onSettings={() => setDialog({ kind: 'settings' })}
             onEdit={(config) => setDialog({ kind: 'connect', editing: config })}
             onRemove={(id) => remove(id)}
+            onRename={(name) => {
+              // The new name is saved on every server and used the next time we connect.
+              list.forEach((srv) => upsert({ ...srv.config, nickname: name }));
+              showToast(t('profRenamed'));
+            }}
           />
         )}
 

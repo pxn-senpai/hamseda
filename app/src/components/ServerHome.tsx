@@ -6,6 +6,8 @@ import type { UserStatus, TransmitSetting } from '../settings';
 import type { ServerConfig, ServerState } from '../types';
 import { Avatar } from './Avatar';
 import { CHANGELOG } from '../lib/changelog';
+import { loadProfile, saveProfile, readPicture } from '../lib/profile';
+import type { Profile } from '../lib/profile';
 
 type Filter = 'all' | 'online' | 'offline';
 
@@ -18,6 +20,7 @@ interface Props {
   onRemove: (id: string) => void;
   nickname: string;
   onSettings: () => void;
+  onRename: (name: string) => void;
 }
 
 /** Colour of the status ring and the status dot. */
@@ -102,9 +105,47 @@ function UpdateBanner() {
 }
 
 /** Full profile page: status, voice mode, copy name and settings. */
-function ProfilePage({ nickname, onBack, onSettings }: { nickname: string; onBack: () => void; onSettings: () => void }) {
+function ProfilePage({
+  nickname,
+  onRename,
+  onBack,
+  onSettings,
+}: {
+  nickname: string;
+  onRename: (name: string) => void;
+  onBack: () => void;
+  onSettings: () => void;
+}) {
   const { t, status, setStatus, transmit, setTransmit } = useSettings();
   const [copied, setCopied] = useState(false);
+  const [profile, setProfile] = useState<Profile>(() => loadProfile());
+  const [draftName, setDraftName] = useState(nickname);
+  const [picError, setPicError] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const bioLeft = 160 - profile.bio.length;
+
+  const updateProfile = (next: Profile) => {
+    setProfile(next);
+    saveProfile(next);
+  };
+  const saveName = () => {
+    const name = draftName.trim();
+    if (!name || name === nickname) {
+      setDraftName(nickname);
+      return;
+    }
+    onRename(name);
+  };
+  const pickPicture = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const picture = await readPicture(file);
+      setPicError(false);
+      updateProfile({ ...profile, picture });
+    } catch {
+      setPicError(true);
+    }
+  };
   const statuses: { id: UserStatus; label: string; color: string }[] = [
     { id: 'online', label: t('statusOnline'), color: '#38d39a' },
     { id: 'idle', label: t('statusIdle'), color: '#f5b84d' },
@@ -138,7 +179,7 @@ function ProfilePage({ nickname, onBack, onSettings }: { nickname: string; onBac
       <section className="srv-profile-card">
         <div className="srv-profile-hero">
           <div className="srv-profile-avatar">
-            <Avatar name={nickname} size={84} />
+            <Avatar name={nickname} size={84} picture={profile.picture} />
             <span className="srv-profile-dot" style={{ background: current.color }} />
           </div>
           <div className="srv-profile-name">
@@ -152,6 +193,60 @@ function ProfilePage({ nickname, onBack, onSettings }: { nickname: string; onBac
             <button type="button" className="srv-tool" onClick={onSettings}>
               <Settings size={15} /> {t('settings')}
             </button>
+          </div>
+        </div>
+
+        <div className="srv-profile-edit">
+          <label className="srv-field">
+            <span>{t('profName')}</span>
+            <div className="srv-field-row">
+              <input
+                value={draftName}
+                maxLength={30}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && saveName()}
+              />
+              <button type="button" className="btn small" onClick={saveName} disabled={draftName.trim() === nickname}>
+                {t('save')}
+              </button>
+            </div>
+          </label>
+
+          <label className="srv-field">
+            <span>
+              {t('profBio')} <small>{bioLeft}</small>
+            </span>
+            <textarea
+              value={profile.bio}
+              maxLength={160}
+              rows={3}
+              onChange={(e) => updateProfile({ ...profile, bio: e.target.value })}
+            />
+          </label>
+
+          <div className="srv-field">
+            <span>{t('profPicture')}</span>
+            <div className="srv-field-row">
+              <button type="button" className="btn small" onClick={() => fileRef.current?.click()}>
+                {t('profChoosePicture')}
+              </button>
+              {profile.picture && (
+                <button type="button" className="btn small" onClick={() => updateProfile({ ...profile, picture: undefined })}>
+                  {t('profRemovePicture')}
+                </button>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => {
+                  pickPicture(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+            {picError && <small className="srv-field-error">{t('profPictureError')}</small>}
           </div>
         </div>
 
@@ -197,7 +292,7 @@ function ProfilePage({ nickname, onBack, onSettings }: { nickname: string; onBac
 }
 
 /** Home screen: the update notice, the list of saved servers and a link to your profile. */
-export function ServerHome({ servers, onOpen, onConnect, onAdd, onEdit, onRemove, nickname, onSettings }: Props) {
+export function ServerHome({ servers, onOpen, onConnect, onAdd, onEdit, onRemove, nickname, onSettings, onRename }: Props) {
   const { t } = useSettings();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -242,7 +337,14 @@ export function ServerHome({ servers, onOpen, onConnect, onAdd, onEdit, onRemove
   }, [servers, query, filter]);
 
   if (page === 'profile') {
-    return <ProfilePage nickname={nickname} onBack={() => setPage('home')} onSettings={onSettings} />;
+    return (
+      <ProfilePage
+        nickname={nickname}
+        onRename={onRename}
+        onBack={() => setPage('home')}
+        onSettings={onSettings}
+      />
+    );
   }
 
   const filters: { id: Filter; label: string }[] = [
