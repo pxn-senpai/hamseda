@@ -96,27 +96,35 @@ export function GifPicker({ onPick, onClose }: Props) {
     return (
       <div className="emoji-pop gif-pop" ref={ref} role="dialog" aria-label="GIF">
         <p className="gif-note">{t('gifNeedKey')}</p>
-        <form
-          className="gif-key"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const k = keyDraft.trim();
-            if (!k) return;
-            saveKey(k);
-            setKey(k);
-          }}
-        >
+        <div className="gif-key">
           <input
             value={keyDraft}
             onChange={(e) => setKeyDraft(e.target.value)}
             placeholder={t('gifKeyPlaceholder')}
             dir="ltr"
             aria-label={t('gifKeyPlaceholder')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && keyDraft.trim()) {
+                e.preventDefault();
+                saveKey(keyDraft.trim());
+                setKey(keyDraft.trim());
+              }
+            }}
           />
-          <button type="submit" className="btn small primary" disabled={!keyDraft.trim()}>
+          <button
+            type="button"
+            className="btn small primary"
+            disabled={!keyDraft.trim()}
+            onClick={() => {
+              const k = keyDraft.trim();
+              if (!k) return;
+              saveKey(k);
+              setKey(k);
+            }}
+          >
             {t('gifKeySave')}
           </button>
-        </form>
+        </div>
       </div>
     );
   }
