@@ -1,6 +1,6 @@
 [package]
 name = "hamseda-app"
-version = "0.2.7"
+version = "0.2.8"
 description = "Hamseda desktop app (Tauri shell around the Rust core)"
 edition = "2021"
 license = "UNLICENSED"
