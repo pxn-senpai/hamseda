@@ -278,6 +278,8 @@ export function App() {
             onOpen={(id) => setActiveId(id)}
             onConnect={(s) => connect(s.config)}
             onAdd={() => setDialog({ kind: 'connect' })}
+            nickname={list[0]?.config.nickname ?? 'Guest'}
+            onSettings={() => setDialog({ kind: 'settings' })}
           />
         )}
 

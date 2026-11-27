@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { useSettings } from '../settings';
 import type { ServerState } from '../types';
+import { UserPanel } from './UserPanel';
 
 type Filter = 'all' | 'online' | 'offline';
 
@@ -10,6 +11,9 @@ interface Props {
   onOpen: (id: string) => void;
   onConnect: (server: ServerState) => void;
   onAdd: () => void;
+  /** Your nickname and the settings button, so settings stay reachable from this screen. */
+  nickname: string;
+  onSettings: () => void;
 }
 
 /** Colour of the status ring and the status dot. */
@@ -37,7 +41,7 @@ function gradientFor(id: string): string {
 }
 
 /** Home screen with no server open: all bookmarked servers in a grid of square cards. */
-export function ServerHome({ servers, onOpen, onConnect, onAdd }: Props) {
+export function ServerHome({ servers, onOpen, onConnect, onAdd, nickname, onSettings }: Props) {
   const { t } = useSettings();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -192,6 +196,10 @@ export function ServerHome({ servers, onOpen, onConnect, onAdd }: Props) {
           </span>
           <span>{t('srvAddNew')}</span>
         </button>
+      </div>
+
+      <div className="srv-foot">
+        <UserPanel nickname={nickname} onToggleMic={() => {}} onToggleDeaf={() => {}} onSettings={onSettings} />
       </div>
     </main>
   );
