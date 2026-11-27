@@ -4,6 +4,7 @@ import { IS_DESKTOP, useBridge } from './bridge';
 import { useSettings } from './settings';
 import type { ServerConfig } from './types';
 import { ServerRail } from './components/ServerRail';
+import type { DmItem } from './components/ServerRail';
 import { ServerHome } from './components/ServerHome';
 import { ChannelPane } from './components/ChannelPane';
 import { ChatArea } from './components/ChatArea';
@@ -45,6 +46,26 @@ export function App() {
   // The private conversation on screen (a client id), or null for the channel.
   const [pmWith, setPmWith] = useState<number | null>(null);
   const [pmPage, setPmPage] = useState(false);
+  // Last time each private chat was read, keyed "server:person". Stored per browser.
+  const [pmSeen, setPmSeen] = useState<Record<string, number>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('hamseda.pmSeen') ?? '{}');
+    } catch {
+      return {};
+    }
+  });
+  const markSeen = useCallback((key: string, ts: number) => {
+    setPmSeen((prev) => {
+      if ((prev[key] ?? 0) >= ts) return prev;
+      const next = { ...prev, [key]: ts };
+      try {
+        localStorage.setItem('hamseda.pmSeen', JSON.stringify(next));
+      } catch {
+        /* storage blocked: unread marks reset on restart */
+      }
+      return next;
+    });
+  }, []);
   const [quickOpen, setQuickOpen] = useState(false);
   const seenRef = useRef<Set<string>>(new Set());
   const primedRef = useRef(false);
@@ -55,7 +76,15 @@ export function App() {
 
   const list = useMemo(() => Object.values(servers), [servers]);
   const active = activeId ? servers[activeId] : undefined;
-  useEffect(() => setPmWith(null), [activeId]);
+  // Switching servers clears the open private chat, except when the bar opens one.
+  const keepPmWith = useRef(false);
+  useEffect(() => {
+    if (keepPmWith.current) {
+      keepPmWith.current = false;
+      return;
+    }
+    setPmWith(null);
+  }, [activeId]);
   const snap = active?.snapshot;
   const self = snap?.clients.find((c) => c.isSelf);
 
@@ -227,6 +256,52 @@ export function App() {
     }, 320);
   };
 
+  // Private chats across all servers, newest first, with unread counts.
+  const dms: DmItem[] = useMemo(
+    () =>
+      list
+        .flatMap((server) => {
+          const selfId = server.snapshot?.selfId ?? -1;
+          return Object.entries(server.privateMessages ?? {})
+            .filter(([, msgs]) => msgs.length > 0)
+            .map(([id, msgs]) => {
+              const clientId = Number(id);
+              const last = msgs[msgs.length - 1];
+              const key = `${server.config.id}:${clientId}`;
+              const seen = pmSeen[key] ?? 0;
+              const live = server.snapshot?.clients.find((c) => c.id === clientId);
+              return {
+                key,
+                connId: server.config.id,
+                clientId,
+                name: live?.nickname ?? last.from.nickname,
+                unread: msgs.filter((m) => m.from.id !== selfId && m.ts > seen).length,
+                last: last.ts,
+              };
+            });
+        })
+        .sort((a, b) => b.last - a.last)
+        .map(({ last: _last, ...rest }) => rest),
+    [list, pmSeen],
+  );
+
+  // Opening a private chat from the bar: switch to its server and show the page.
+  const openDm = (connId: string, clientId: number) => {
+    if (connId !== activeId) keepPmWith.current = true;
+    setActiveId(connId);
+    setPmWith(clientId);
+    setPmPage(true);
+    const msgs = servers[connId]?.privateMessages?.[clientId] ?? [];
+    if (msgs.length > 0) markSeen(`${connId}:${clientId}`, msgs[msgs.length - 1].ts);
+  };
+
+  // While a private chat is open, anything new in it counts as read.
+  useEffect(() => {
+    if (!active || !pmPage || pmWith === null) return;
+    const msgs = active.privateMessages?.[pmWith] ?? [];
+    if (msgs.length > 0) markSeen(`${active.config.id}:${pmWith}`, msgs[msgs.length - 1].ts);
+  }, [active, pmPage, pmWith, markSeen]);
+
   const pmCount = active
     ? Object.values(active.privateMessages ?? {}).filter((l) => l.length > 0).length
     : 0;
@@ -247,8 +322,13 @@ export function App() {
         <ServerRail
           servers={list}
           activeId={activeId}
-          onSelect={setActiveId}
+          onSelect={(id) => {
+            setPmPage(false);
+            setActiveId(id);
+          }}
           onAdd={() => setDialog({ kind: 'connect' })}
+          dms={dms}
+          onOpenDm={openDm}
         />
 
         {!active && (
