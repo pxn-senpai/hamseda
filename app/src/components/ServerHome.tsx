@@ -271,6 +271,9 @@ export function ServerHome({ servers, onOpen, onConnect, onAdd, onEdit, onRemove
               <Avatar name={nickname} size={30} />
               <span>{t('srvProfile')}</span>
             </button>
+            <button type="button" className="srv-icon-btn" onClick={onSettings} aria-label={t('settings')} title={t('settings')}>
+              <Settings size={17} />
+            </button>
             <button type="button" className="srv-add-btn" onClick={onAdd}>
               <Plus size={16} /> {t('addServer')}
             </button>
