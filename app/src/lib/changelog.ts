@@ -1,6 +1,18 @@
 // What changed in each release, shown once to users after they update.
 // Add an entry for every new version before publishing it.
 export const CHANGELOG: Record<string, { fa: string[]; en: string[] }> = {
+  '0.2.15': {
+    fa: [
+      'آواتار افراد: عکس آواتار هر نفر از سرور گرفته می‌شود و عکس خودت هم برای بقیه ارسال می‌شود',
+      'کسانی که عکس ندارند یک چهره‌ی کاراکتری ثابت و منحصر به فرد می‌گیرند',
+      'پیام‌های خصوصی: جستجوی گفتگو، پیش‌نمایش آخرین پیام و شمارنده‌ی پیام خوانده‌نشده',
+    ],
+    en: [
+      'Avatars: everyone\'s TeamSpeak picture is shown, and your picture is sent to the server',
+      'People without a picture get a fixed, unique character avatar',
+      'Private chats: search, last message preview and unread counter',
+    ],
+  },
   '0.2.14': {
     fa: [
       'نشانگر صحبت کردن: حلقه‌ی دور آواتار وقتی کسی صحبت می‌کند، نفس‌کشان است',
