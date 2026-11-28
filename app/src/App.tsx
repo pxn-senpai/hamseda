@@ -372,7 +372,12 @@ export function App() {
             </header>
             <div className="pm-body">
               <div className="pm-side">
-                <PrivateChats server={active} selectedId={pmWith} onOpen={(id) => setPmWith(id)} />
+                <PrivateChats
+                  server={active}
+                  selectedId={pmWith}
+                  onOpen={(id) => setPmWith(id)}
+                  unreadOf={(id) => dms.find((d) => d.connId === active.config.id && d.clientId === id)?.unread ?? 0}
+                />
                 {pmCount === 0 && <p className="pm-empty">{t('noPrivate')}</p>}
               </div>
               {pmWith !== null ? (
