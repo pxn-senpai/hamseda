@@ -1,6 +1,14 @@
 // What changed in each release, shown once to users after they update.
 // Add an entry for every new version before publishing it.
 export const CHANGELOG: Record<string, { fa: string[]; en: string[] }> = {
+  '0.2.13': {
+    fa: [
+      'دکمه‌ی اتصال در کارت سرورها کوچک‌تر و وسط‌چین شد',
+    ],
+    en: [
+      'Connect button on server cards is smaller and centered',
+    ],
+  },
   '0.2.12': {
     fa: [
       'رفع خش صدا: بلندگو دیگر نمونه‌های صوتی را از دست نمی‌دهد',
