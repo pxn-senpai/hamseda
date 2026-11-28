@@ -2517,3 +2517,20 @@ kbd {
 .srv-card .srv-status {
   flex: none;
 }
+
+/* ---------- profile card buttons: two even columns, no wrapped text ---------- */
+.profile-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.profile-actions .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
