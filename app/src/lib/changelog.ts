@@ -1,6 +1,18 @@
 // What changed in each release, shown once to users after they update.
 // Add an entry for every new version before publishing it.
 export const CHANGELOG: Record<string, { fa: string[]; en: string[] }> = {
+  '0.2.11': {
+    fa: [
+      'کیفیت صدا بهتر شد: تبدیل نرخ نمونه نرم‌تر، فیلتر صدای زمزمه‌ی میکروفون و بیت‌ریت بالاتر',
+      'نام برنامه به «اوا» تغییر کرد',
+      'نوار سمت راست فقط گفتگوهای خصوصی خوانده‌نشده را نشان می‌دهد',
+    ],
+    en: [
+      'Better voice quality: smoother resampling, mic rumble filter and higher bitrate',
+      'App renamed to ava (اوا)',
+      'The side bar shows only unread private chats',
+    ],
+  },
   '0.2.10': {
     fa: [
       'کارت پروفایل هر کاربر، رول‌های سرور او را با رنگ نشان می‌دهد',
