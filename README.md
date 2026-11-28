@@ -1,10 +1,10 @@
-# نوا (nava)
+# اوا (ava)
 
 کلاینت دسکتاپ برای **TeamSpeak 3** با ظاهری شبیه دیسکورد و پشتیبانی کامل از فارسی (راست‌به‌چپ).
 این پروژه با TeamSpeak یا Discord وابسته نیست و از نام، لوگو یا دارایی‌های آن‌ها استفاده نمی‌کند.
 برنامه فقط یک کلاینت است: هر کاربر به سرور TeamSpeak خودش (یا سرویس عمومی) وصل می‌شود.
 
-> nava is a Discord-style desktop client for TeamSpeak 3 with a full Persian (RTL) UI.
+> ava is a Discord-style desktop client for TeamSpeak 3 with a full Persian (RTL) UI.
 > Core: Rust + tsclientlib. Shell: Tauri. UI: React + TypeScript.
 
 ## امکانات فعلی
