@@ -6,10 +6,13 @@
 
 use anyhow::{anyhow, Context, Result};
 use futures::StreamExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::{mpsc, Mutex as AsyncMutex};
+use base64::Engine as _;
 use tsclientlib::prelude::{M2BClientMoveExt, M2BClientUpdateExt};
-use tsclientlib::{ChannelId, ClientId, Connection, DisconnectOptions, Identity, InMessage, MessageTarget, OutCommandExt, StreamItem, TextMessageTargetMode};
+use tsclientlib::{ChannelId, ClientId, Connection, DisconnectOptions, FileDownloadResult, FiletransferHandle, Identity, InMessage, MessageTarget, OutCommandExt, StreamItem, TextMessageTargetMode};
 
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use tsproto_packets::packets::InAudioBuf;
@@ -25,6 +28,9 @@ const RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// How long to wait for the server's first book before giving up.
 const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// Largest avatar we send or accept, in bytes (TeamSpeak's own default limit is 500 KB).
+const MAX_AVATAR_BYTES: usize = 500 * 1024;
 
 /// Voice activation level used until the UI chooses one.
 const DEFAULT_VOICE_THRESHOLD_DB: f32 = -45.0;
@@ -175,6 +181,11 @@ async fn run(
 	// anything), so give up if the server has not sent its book within the deadline.
 	let connect_deadline = tokio::time::sleep(CONNECT_TIMEOUT);
 	tokio::pin!(connect_deadline);
+	// File transfers in flight: avatar downloads (by client id) and our own avatar upload.
+	let mut downloads: HashMap<FiletransferHandle, u16> = HashMap::new();
+	let mut uploads: HashMap<FiletransferHandle, Vec<u8>> = HashMap::new();
+	// (client id, avatar name) pairs already requested, so each avatar is asked for once.
+	let mut asked: HashSet<(u16, String)> = HashSet::new();
 	loop {
 		// Wait for either the next connection event or the next UI action.
 		// The borrow of `con` ends inside this statement, so the arms below may use it.
@@ -184,6 +195,9 @@ async fn run(
 					Some(Ok(StreamItem::BookEvents(_))) => Step::Book,
 					Some(Ok(StreamItem::MessageEvent(msg))) => Step::Message(msg),
 					Some(Ok(StreamItem::Audio(packet))) => Step::Audio(packet),
+					Some(Ok(StreamItem::FileDownload(handle, result))) => Step::Download(handle, result),
+					Some(Ok(StreamItem::FileUpload(handle, result))) => Step::Upload(handle, result),
+					Some(Ok(StreamItem::FiletransferFailed(handle, _))) => Step::TransferFailed(handle),
 					Some(Ok(_)) => Step::Other,
 					Some(Err(e)) => Step::Failed(e.to_string()),
 					None => Step::Closed,
@@ -211,6 +225,7 @@ async fn run(
 					conn_id: conn_id.to_owned(),
 					snapshot: snap,
 				});
+				request_avatars(&mut con, &mut downloads, &mut asked);
 			}
 			Step::Message(msg) => {
 				if let InMessage::TextMessage(text) = msg {
@@ -275,6 +290,31 @@ async fn run(
 				engine = None;
 				send_notice(events, conn_id, "audio_stopped", "The microphone stopped.".into());
 			}
+			Step::Download(handle, result) => {
+				if let Some(client_id) = downloads.remove(&handle) {
+					tokio::spawn(read_avatar(events.clone(), conn_id.to_owned(), client_id, result));
+				}
+			}
+			Step::Upload(handle, result) => {
+				if let Some(bytes) = uploads.remove(&handle) {
+					tokio::spawn(async move {
+						let mut stream = result.stream;
+						let _ = stream.write_all(&bytes).await;
+						let _ = stream.shutdown().await;
+					});
+				}
+			}
+			Step::TransferFailed(handle) => {
+				// No avatar on the server for that person, or the transfer broke. Show the letter.
+				downloads.remove(&handle);
+				uploads.remove(&handle);
+			}
+			Step::Action(Some(Action::SetAvatar { data })) => match upload_avatar(&mut con, &data) {
+				Ok((handle, bytes)) => {
+					uploads.insert(handle, bytes);
+				}
+				Err(err) => send_notice(events, conn_id, "avatar_failed", format!("{err:#}")),
+			},
 			Step::Other => {}
 			Step::TimedOut => return Err(anyhow!("timed out waiting for the server")),
 			Step::Failed(msg) => return Err(anyhow!("connection error: {msg}")),
@@ -326,6 +366,9 @@ enum Step {
 	Closed,
 	TimedOut,
 	Action(Option<Action>),
+	Download(FiletransferHandle, FileDownloadResult),
+	Upload(FiletransferHandle, tsclientlib::FileUploadResult),
+	TransferFailed(FiletransferHandle),
 }
 
 static MESSAGE_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -394,8 +437,89 @@ fn apply(con: &mut Connection, audio: &mut AudioState, action: Action) -> Result
 			TransmitConfig::Voice { threshold_db } => TransmitMode::VoiceActivation { threshold_db },
 		}),
 		Action::Disconnect => {}
+		// Handled in the connection loop, where the file transfer can be tracked.
+		Action::SetAvatar { .. } => {}
 	}
 	Ok(())
+}
+
+/// Asks the server for the avatar of everyone in the book who has not been asked for yet.
+/// Most people have no avatar; the server then answers with a transfer failure.
+fn request_avatars(
+	con: &mut Connection,
+	downloads: &mut HashMap<FiletransferHandle, u16>,
+	asked: &mut HashSet<(u16, String)>,
+) {
+	let wanted: Vec<(u16, String)> = match con.get_state() {
+		Ok(state) => {
+			let own = state.own_client;
+			state
+				.clients
+				.iter()
+				.filter(|(id, _)| **id != own)
+				.filter_map(|(id, c)| c.uid.as_ref().map(|uid| (id.0, uid.as_avatar())))
+				.collect()
+		}
+		Err(_) => return,
+	};
+	for (client_id, avatar) in wanted {
+		if !asked.insert((client_id, avatar.clone())) {
+			continue;
+		}
+		if let Ok(handle) = con.download_file(ChannelId(0), &format!("/avatar_{avatar}"), None, None) {
+			downloads.insert(handle, client_id);
+		}
+	}
+}
+
+/// Reads one downloaded avatar and sends it to the UI as a data URL.
+async fn read_avatar(
+	events: mpsc::UnboundedSender<Event>,
+	conn_id: String,
+	client_id: u16,
+	result: FileDownloadResult,
+) {
+	let size = result.size as usize;
+	if size == 0 || size > MAX_AVATAR_BYTES {
+		return;
+	}
+	let mut stream = result.stream;
+	let mut bytes = vec![0u8; size];
+	if stream.read_exact(&mut bytes).await.is_err() {
+		return;
+	}
+	let _ = events.send(Event::Avatar {
+		conn_id,
+		client_id,
+		data_url: data_url(&bytes),
+	});
+}
+
+/// The bytes as a `data:` URL, with the type taken from the file's first bytes.
+fn data_url(bytes: &[u8]) -> String {
+	let mime = if bytes.starts_with(b"\x89PNG") {
+		"image/png"
+	} else if bytes.starts_with(b"GIF8") {
+		"image/gif"
+	} else {
+		"image/jpeg"
+	};
+	format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes))
+}
+
+/// Decodes our avatar from the UI and starts the upload. The bytes are written later,
+/// when the library reports that the transfer is ready.
+fn upload_avatar(con: &mut Connection, data: &str) -> Result<(FiletransferHandle, Vec<u8>)> {
+	let bytes = base64::engine::general_purpose::STANDARD
+		.decode(data.trim())
+		.context("the avatar is not valid base64")?;
+	if bytes.is_empty() || bytes.len() > MAX_AVATAR_BYTES {
+		return Err(anyhow!("the avatar must be between 1 byte and 500 KB"));
+	}
+	let handle = con
+		.upload_file(ChannelId(0), "/avatar", None, bytes.len() as u64, true, false)
+		.context("could not start the avatar upload")?;
+	Ok((handle, bytes))
 }
 
 fn friendly(err: &anyhow::Error) -> String {

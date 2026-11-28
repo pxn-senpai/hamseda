@@ -91,6 +91,12 @@ pub enum Event {
 		code: String,
 		message: String,
 	},
+	/// A client's avatar, downloaded from the server, as a `data:` URL.
+	Avatar {
+		conn_id: String,
+		client_id: u16,
+		data_url: String,
+	},
 	/// A chat message from the server. `channel_id` 0 means "server-wide or private".
 	Message {
 		conn_id: String,
@@ -184,6 +190,10 @@ pub enum Action {
 	/// Change how the microphone decides when to send.
 	SetTransmit {
 		mode: TransmitConfig,
+	},
+	/// Upload our own avatar to the server. `data` is base64 of a small image file.
+	SetAvatar {
+		data: String,
 	},
 	/// Choose the microphone and speaker by name. `None` means the system default.
 	SetAudioDevices {

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useSettings } from '../settings';
 import type { Client, ServerState } from '../types';
-import { Avatar } from './Avatar';
+import { ClientAvatar } from './ClientAvatar';
 
 interface Props {
   server: ServerState;
@@ -61,7 +61,7 @@ export function PrivateChats({ server, selectedId, onOpen, unreadOf }: Props) {
                 className={`pm-item${selectedId === c.clientId ? ' selected' : ''}`}
                 onClick={() => onOpen(c.clientId)}
               >
-                <Avatar name={c.name} size={36} />
+                <ClientAvatar clientId={c.clientId} name={c.name} size={36} />
                 <span className="pm-text">
                   <span className="pm-name">{c.name}</span>
                   <span className="pm-preview">{c.preview}</span>

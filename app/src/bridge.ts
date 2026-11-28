@@ -79,7 +79,7 @@ function reducer(state: Servers, action: Action): Servers {
               status: ev.state,
               message: ev.message,
               // a fresh connection starts with a clean slate
-              ...(ev.state === 'connecting' ? { snapshot: undefined, messages: {} } : {}),
+              ...(ev.state === 'connecting' ? { snapshot: undefined, messages: {}, avatars: {} } : {}),
             },
           };
         case 'snapshot': {
@@ -121,6 +121,11 @@ function reducer(state: Servers, action: Action): Servers {
             },
           };
         }
+        case 'avatar':
+          return {
+            ...state,
+            [ev.connId]: { ...s, avatars: { ...(s.avatars ?? {}), [ev.clientId]: ev.dataUrl } },
+          };
         case 'notice':
           return state; // shown as a toast by the caller
       }
@@ -419,6 +424,8 @@ function toCoreAction(msg: Record<string, unknown>): Record<string, unknown> | n
       return { type: 'setTransmit', mode: msg.mode };
     case 'sendPrivate':
       return { type: 'chat', target: { kind: 'client', clientId: msg.clientId }, text: msg.text };
+    case 'setAvatar':
+      return { type: 'setAvatar', data: msg.data };
     case 'sendMessage':
       // The core sends to the channel we are in; a channel id from another channel is not supported yet.
       return { type: 'chat', target: { kind: 'channel' }, text: msg.text };

@@ -4,7 +4,7 @@ import { Hash, Search, SendHorizontal, SmilePlus, X } from 'lucide-react';
 import { useSettings } from '../settings';
 import { formatDay, formatTime } from '../lib/util';
 import type { Channel, ChatMessage } from '../types';
-import { Avatar } from './Avatar';
+import { ClientAvatar } from './ClientAvatar';
 import { EmojiPicker } from './EmojiPicker';
 import { GifPicker } from './GifPicker';
 
@@ -222,7 +222,7 @@ export function ChatArea({ channel, messages, selfId, selfName, canSend, onSend,
                 {grouped ? (
                   <time className="msg-time-side">{formatTime(m.ts, lang)}</time>
                 ) : (
-                  <Avatar name={m.from.nickname} size={38} />
+                  <ClientAvatar clientId={m.from.id} name={m.from.nickname} size={38} />
                 )}
                 <div className="msg-main">
                   {!grouped && (

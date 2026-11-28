@@ -23,6 +23,8 @@ interface Props {
   onRename: (name: string) => void;
   onOpenPrivate: () => void;
   pmUnread: number;
+  /** Our own picture changed (undefined = removed). */
+  onPictureChange: (picture?: string) => void;
 }
 
 /** Colour of the status ring and the status dot. */
@@ -110,11 +112,13 @@ function UpdateBanner() {
 function ProfilePage({
   nickname,
   onRename,
+  onPictureChange,
   onBack,
   onSettings,
 }: {
   nickname: string;
   onRename: (name: string) => void;
+  onPictureChange: (picture?: string) => void;
   onBack: () => void;
   onSettings: () => void;
 }) {
@@ -144,6 +148,7 @@ function ProfilePage({
       const picture = await readPicture(file);
       setPicError(false);
       updateProfile({ ...profile, picture });
+      onPictureChange(picture);
     } catch {
       setPicError(true);
     }
@@ -189,7 +194,14 @@ function ProfilePage({
               <ImagePlus size={15} /> {t('profChoosePicture')}
             </button>
             {profile.picture && (
-              <button type="button" className="srv-tool" onClick={() => updateProfile({ ...profile, picture: undefined })}>
+              <button
+                type="button"
+                className="srv-tool"
+                onClick={() => {
+                  updateProfile({ ...profile, picture: undefined });
+                  onPictureChange(undefined);
+                }}
+              >
                 <X size={15} /> {t('profRemovePicture')}
               </button>
             )}
@@ -280,6 +292,7 @@ export function ServerHome({
   onRename,
   onOpenPrivate,
   pmUnread,
+  onPictureChange,
 }: Props) {
   const { t } = useSettings();
   const [query, setQuery] = useState('');
@@ -329,6 +342,7 @@ export function ServerHome({
       <ProfilePage
         nickname={nickname}
         onRename={onRename}
+        onPictureChange={onPictureChange}
         onBack={() => setPage('home')}
         onSettings={onSettings}
       />

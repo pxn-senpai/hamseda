@@ -13,7 +13,7 @@ import {
 import { useSettings } from '../settings';
 import { buildRows } from '../lib/tree';
 import type { Client, ServerState } from '../types';
-import { Avatar } from './Avatar';
+import { ClientAvatar } from './ClientAvatar';
 
 interface Props {
   server: ServerState;
@@ -188,7 +188,7 @@ export function ChannelPane({
                     <ul className="channel-users" style={{ paddingInlineStart: 28 + row.depth * 16 }}>
                       {users.map((u) => (
                         <li key={u.id} className={u.away ? 'away' : ''}>
-                          <Avatar name={u.nickname} size={22} talking={u.talking} dim={u.away} />
+                          <ClientAvatar clientId={u.id} name={u.nickname} size={22} talking={u.talking} dim={u.away} />
                           <span className="u-main">
                             <span className="u-name">{u.nickname}</span>
                             {u.inputMuted && <MicOff size={13} aria-label={t('mute')} />}

@@ -4,7 +4,7 @@ import { useSettings } from '../settings';
 import { avatarColor } from '../lib/util';
 import type { Client, Group } from '../types';
 import { roleColor } from '../lib/util';
-import { Avatar } from './Avatar';
+import { ClientAvatar } from './ClientAvatar';
 
 interface Props {
   client: Client;
@@ -102,7 +102,7 @@ export function ProfileCard({
     >
       <div className="profile-banner" style={{ background: `linear-gradient(135deg, ${avatarColor(client.nickname)}, var(--accent))` }} />
       <div className="profile-avatar">
-        <Avatar name={client.nickname} size={68} talking={client.talking} dim={client.away} />
+        <ClientAvatar clientId={client.id} name={client.nickname} size={68} talking={client.talking} dim={client.away} />
         <span className={`profile-status ${status}`} aria-label={t(status === 'away' ? 'away' : 'online')} />
       </div>
 

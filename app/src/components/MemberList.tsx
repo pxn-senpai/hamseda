@@ -3,7 +3,7 @@ import { Headphones, MicOff, MoonStar } from 'lucide-react';
 import { useSettings } from '../settings';
 import { roleColor } from '../lib/util';
 import type { Channel, ChatMessage, Client, Group } from '../types';
-import { Avatar } from './Avatar';
+import { ClientAvatar } from './ClientAvatar';
 import { ProfileCard } from './ProfileCard';
 
 interface Props {
@@ -101,7 +101,7 @@ export function MemberList({ clients, groups, channels, privateMessages, onMessa
                   aria-haspopup="dialog"
                   onClick={(e) => setOpen({ client: c, anchor: e.currentTarget.getBoundingClientRect() })}
                 >
-                  <Avatar name={c.nickname} size={32} talking={c.talking} dim={c.away} />
+                  <ClientAvatar clientId={c.id} name={c.nickname} size={32} talking={c.talking} dim={c.away} />
                   <span className="m-main">
                     <span className="m-name" style={color ? { color } : undefined}>
                       {c.nickname}

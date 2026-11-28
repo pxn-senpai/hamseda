@@ -28,8 +28,11 @@ async fn main() -> anyhow::Result<()> {
 
 	let (tx, mut rx) = mpsc::unbounded_channel();
 	// Keep the handle alive: dropping it would look like the UI went away.
-	let _session = spawn_session("probe".into(), address, port, nickname, password, tsclientlib::Identity::create(), tx);
+	let session = spawn_session("probe".into(), address, port, nickname, password, tsclientlib::Identity::create(), tx);
 
+	// AVATAR_FILE=<path>: upload this file as our avatar once connected (for testing).
+	let avatar_file = env::var("AVATAR_FILE").ok();
+	let mut avatar_sent = false;
 	while let Some(event) = rx.recv().await {
 		match event {
 			Event::Status { state, message, .. } => {
@@ -37,6 +40,19 @@ async fn main() -> anyhow::Result<()> {
 			}
 			Event::Snapshot { snapshot, .. } => {
 				print_tree(&snapshot);
+				if let (Some(path), false) = (&avatar_file, avatar_sent) {
+					avatar_sent = true;
+					let bytes = std::fs::read(path).expect("read AVATAR_FILE");
+					let data = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);
+					eprintln!("[probe] sending avatar, {} bytes", bytes.len());
+					let _ = session.actions.send(hamseda_core::protocol::Action::SetAvatar { data });
+				}
+			}
+			Event::Avatar { client_id, data_url, .. } => {
+				eprintln!("[avatar] client {client_id}: {} chars, {}", data_url.len(), &data_url[..data_url.find(',').unwrap_or(0)]);
+				if let Some(b64) = data_url.split(',').nth(1) {
+					let _ = std::fs::write(format!("avatar-{client_id}.b64"), b64);
+				}
 			}
 			Event::Notice { message, .. } => eprintln!("[notice] {message}"),
 			Event::Message { channel_id, message, .. } => {

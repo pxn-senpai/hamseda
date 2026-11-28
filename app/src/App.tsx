@@ -26,6 +26,8 @@ import { playMention } from './sounds';
 import { QuickSwitch } from './components/QuickSwitch';
 import { Splash } from './components/Splash';
 import { mentions } from './components/ChatArea';
+import { AvatarPicturesProvider } from './components/ClientAvatar';
+import { loadProfile } from './lib/profile';
 import type { ChatMessage } from './types';
 
 type Dialog = { kind: 'connect'; editing?: ServerConfig } | { kind: 'settings' } | null;
@@ -306,9 +308,23 @@ export function App() {
     ? Object.values(active.privateMessages ?? {}).filter((l) => l.length > 0).length
     : 0;
 
+  // Our picture goes to every server we are connected to, now and after each new connection.
+  const sendPicture = (connId: string, picture: string) =>
+    send({ type: 'setAvatar', connId, data: picture.split(',')[1] ?? '' });
+  const connectedKey = list
+    .filter((s) => s.status === 'connected')
+    .map((s) => s.config.id)
+    .join(',');
+  useEffect(() => {
+    const picture = loadProfile().picture;
+    if (!picture || !connectedKey) return;
+    for (const connId of connectedKey.split(',')) sendPicture(connId, picture);
+  }, [connectedKey]);
+
   if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
 
   return (
+    <AvatarPicturesProvider value={active?.avatars ?? {}}>
     <div className="app">
       {!bridgeUp && (
         <div className="banner" role="alert">
@@ -346,6 +362,10 @@ export function App() {
               // Open the most recent private chat; with none yet, say so.
               if (dms.length > 0) openDm(dms[0].connId, dms[0].clientId);
               else showToast(t('noPrivate'));
+            }}
+            onPictureChange={(picture) => {
+              if (!picture) return; // removing it here only; the server keeps the last picture
+              list.filter((s) => s.status === 'connected').forEach((s) => sendPicture(s.config.id, picture));
             }}
             onRename={(name) => {
               // The new name is saved on every server and used the next time we connect.
@@ -504,5 +524,6 @@ export function App() {
         </div>
       )}
     </div>
+    </AvatarPicturesProvider>
   );
 }
