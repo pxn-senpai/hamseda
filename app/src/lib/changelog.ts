@@ -1,6 +1,14 @@
 // What changed in each release, shown once to users after they update.
 // Add an entry for every new version before publishing it.
 export const CHANGELOG: Record<string, { fa: string[]; en: string[] }> = {
+  '0.2.16': {
+    fa: [
+      'لوگوی تازه‌ی اوا به‌عنوان آیکون برنامه و نسخه‌ی وب',
+    ],
+    en: [
+      'New ava logo as the app icon and on the web version',
+    ],
+  },
   '0.2.15': {
     fa: [
       'آواتار افراد: عکس آواتار هر نفر از سرور گرفته می‌شود و عکس خودت هم برای بقیه ارسال می‌شود',
