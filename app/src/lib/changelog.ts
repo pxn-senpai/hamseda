@@ -1,6 +1,20 @@
 // What changed in each release, shown once to users after they update.
 // Add an entry for every new version before publishing it.
 export const CHANGELOG: Record<string, { fa: string[]; en: string[] }> = {
+  '0.2.14': {
+    fa: [
+      'نشانگر صحبت کردن: حلقه‌ی دور آواتار وقتی کسی صحبت می‌کند، نفس‌کشان است',
+      'ورود به صفحه‌ها با انیمیشن از سمت راست',
+      'کارت سرورها و دکمه‌ها با ماوس و کلیک واکنش نشان می‌دهند',
+      'انیمیشن‌ها با تنظیم «کاهش حرکت» سیستم خاموش می‌شوند',
+    ],
+    en: [
+      'Speaking indicator: the ring around an avatar pulses while someone talks',
+      'Pages slide in from the right',
+      'Server cards and buttons react to hover and click',
+      'Animations turn off when reduced motion is on in system settings',
+    ],
+  },
   '0.2.13': {
     fa: [
       'دکمه‌ی اتصال در کارت سرورها کوچک‌تر و وسط‌چین شد',
