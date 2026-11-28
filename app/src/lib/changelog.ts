@@ -1,6 +1,20 @@
 // What changed in each release, shown once to users after they update.
 // Add an entry for every new version before publishing it.
 export const CHANGELOG: Record<string, { fa: string[]; en: string[] }> = {
+  '0.2.12': {
+    fa: [
+      'رفع خش صدا: بلندگو دیگر نمونه‌های صوتی را از دست نمی‌دهد',
+      'کارت سرورها فشرده‌تر و خواناتر شد',
+      'دکمه‌ی پیام‌های خصوصی در صفحه‌ی اصلی با شمارش خوانده‌نشده',
+      'دکمه‌ی ربات موزیک در کارت پروفایل کامل نمایش داده می‌شود',
+    ],
+    en: [
+      'Fixed crackle: the speaker no longer drops audio samples',
+      'Tidier server cards',
+      'Private messages button on home with unread count',
+      'Music bot button fits fully on the profile card',
+    ],
+  },
   '0.2.11': {
     fa: [
       'کیفیت صدا بهتر شد: تبدیل نرخ نمونه نرم‌تر، فیلتر صدای زمزمه‌ی میکروفون و بیت‌ریت بالاتر',
