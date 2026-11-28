@@ -28,6 +28,7 @@ import { Splash } from './components/Splash';
 import { mentions } from './components/ChatArea';
 import { AvatarPicturesProvider } from './components/ClientAvatar';
 import { loadProfile } from './lib/profile';
+import { characterFor } from './lib/characters';
 import type { ChatMessage } from './types';
 
 type Dialog = { kind: 'connect'; editing?: ServerConfig } | { kind: 'settings' } | null;
@@ -308,6 +309,17 @@ export function App() {
     ? Object.values(active.privateMessages ?? {}).filter((l) => l.length > 0).length
     : 0;
 
+  // Pictures of the active server's people. Anyone without one gets a fixed character.
+  const avatarMap = useMemo(() => {
+    const map: Record<number, string> = {};
+    for (const c of active?.snapshot?.clients ?? []) {
+      const picture = active?.avatars?.[c.id];
+      if (picture) map[c.id] = picture;
+      else if (c.avatarKey) map[c.id] = characterFor(c.avatarKey);
+    }
+    return map;
+  }, [active]);
+
   // Our picture goes to every server we are connected to, now and after each new connection.
   const sendPicture = (connId: string, picture: string) =>
     send({ type: 'setAvatar', connId, data: picture.split(',')[1] ?? '' });
@@ -324,7 +336,7 @@ export function App() {
   if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
 
   return (
-    <AvatarPicturesProvider value={active?.avatars ?? {}}>
+    <AvatarPicturesProvider value={avatarMap}>
     <div className="app">
       {!bridgeUp && (
         <div className="banner" role="alert">

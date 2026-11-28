@@ -95,6 +95,7 @@ fn to_client(c: &TsClient, own: ClientId) -> Client {
 		group_ids: c.server_groups.iter().map(|g| g.0).collect(),
 		is_self: c.id == own,
 		is_query: matches!(c.client_type, ClientType::Query { .. }),
+		avatar_key: c.uid.as_ref().map(|u| u.as_avatar()).unwrap_or_default(),
 	}
 }
 

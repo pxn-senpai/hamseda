@@ -43,6 +43,8 @@ pub struct Client {
 	pub is_self: bool,
 	/// ServerQuery client (a bot by definition).
 	pub is_query: bool,
+	/// Stable identity of the person (the avatar name derived from their unique id). Empty if unknown.
+	pub avatar_key: String,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]

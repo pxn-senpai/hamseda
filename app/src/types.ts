@@ -17,6 +17,8 @@ export interface Channel {
 
 export interface Client {
   id: number;
+  /** Stable identity used to pick a character avatar when there is no picture. */
+  avatarKey?: string;
   channelId: number;
   nickname: string;
   talking?: boolean;
