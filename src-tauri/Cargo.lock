@@ -1774,7 +1774,7 @@ dependencies = [
 
 [[package]]
 name = "hamseda-app"
-version = "0.2.2"
+version = "0.2.10"
 dependencies = [
  "hamseda-core",
  "serde_json",
@@ -1799,6 +1799,7 @@ dependencies = [
  "tokio",
  "tsclientlib",
  "tsproto-packets",
+ "tsproto-types",
 ]
 
 [[package]]

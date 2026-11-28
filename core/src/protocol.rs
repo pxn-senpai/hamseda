@@ -246,6 +246,7 @@ mod tests {
 		let ev = Event::Message {
 			conn_id: "a".into(),
 			channel_id: 9,
+			pm_with: None,
 			message: ChatMessage {
 				id: "1".into(),
 				from: ChatFrom { id: 2, nickname: "Ali".into() },

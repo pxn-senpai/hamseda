@@ -43,7 +43,7 @@ impl Encoder {
 			.map_err(|e| anyhow!("could not start the Opus encoder: {e}"))?;
 		// Clear speech at a modest bitrate, and tuned for networks that lose some packets.
 		inner
-			.set_bitrate(Bitrate::BitsPerSecond(32_000))
+			.set_bitrate(Bitrate::BitsPerSecond(40_000))
 			.map_err(|e| anyhow!("could not set the Opus bitrate: {e}"))?;
 		inner
 			.set_packet_loss_perc(10)
@@ -109,10 +109,39 @@ impl Gate {
 	}
 }
 
+/// First-order high-pass filter. Removes rumble, desk knocks and DC offset from the
+/// microphone, so the voice codec spends its bits on speech. It keeps its state between
+/// frames, so the sound stays continuous.
+pub struct HighPass {
+	a: f32,
+	prev_x: f32,
+	prev_y: f32,
+}
+
+impl HighPass {
+	/// `cutoff_hz` is the frequency below which sound is reduced (here 80 Hz).
+	pub fn new(sample_rate: f32, cutoff_hz: f32) -> Self {
+		let rc = 1.0 / (2.0 * std::f32::consts::PI * cutoff_hz);
+		let dt = 1.0 / sample_rate;
+		Self { a: rc / (rc + dt), prev_x: 0.0, prev_y: 0.0 }
+	}
+
+	/// Filters `frame` in place.
+	pub fn apply(&mut self, frame: &mut [f32]) {
+		for x in frame.iter_mut() {
+			let y = self.a * (self.prev_y + *x - self.prev_x);
+			self.prev_x = *x;
+			self.prev_y = y;
+			*x = y;
+		}
+	}
+}
+
 /// Turns microphone frames into TeamSpeak voice packets.
 pub struct Sender {
 	encoder: Encoder,
 	gate: Gate,
+	highpass: HighPass,
 	packet_id: u16,
 	buf: Vec<u8>,
 }
@@ -122,6 +151,7 @@ impl Sender {
 		Ok(Self {
 			encoder: Encoder::new()?,
 			gate: Gate::new(mode),
+			highpass: HighPass::new(SAMPLE_RATE as f32, 80.0),
 			packet_id: 0,
 			buf: vec![0; MAX_OPUS_BYTES],
 		})
@@ -137,10 +167,13 @@ impl Sender {
 
 	/// Returns a voice packet to send, or `None` when the frame is muted or gated out.
 	pub fn process(&mut self, frame: &[f32], input_muted: bool) -> Result<Option<OutPacket>> {
-		if input_muted || !self.gate.allow(frame) {
+		// The filter runs on every frame, so its state stays correct while the gate is closed.
+		let mut filtered = frame.to_vec();
+		self.highpass.apply(&mut filtered);
+		if input_muted || !self.gate.allow(&filtered) {
 			return Ok(None);
 		}
-		let n = self.encoder.encode(frame, &mut self.buf)?;
+		let n = self.encoder.encode(&filtered, &mut self.buf)?;
 		let id = self.packet_id;
 		self.packet_id = self.packet_id.wrapping_add(1);
 		let packet = OutAudio::new(&AudioData::C2S {
@@ -274,20 +307,22 @@ fn find_device(devices: Vec<cpal::Device>, name: &str) -> Option<cpal::Device> {
 		.find(|d| d.description().map(|x| x.name() == name).unwrap_or(false))
 }
 
-/// Converts audio between sample rates with linear interpolation. It keeps state between
-/// calls, so frames join smoothly. Good enough for voice.
+/// Converts audio between sample rates with cubic (Catmull-Rom) interpolation. It keeps
+/// the last three samples between calls, so frames join smoothly. Cleaner than linear
+/// interpolation: fewer harsh edges in the high frequencies.
 pub struct Resampler {
 	step: f64,
 	pos: f64,
-	prev: f32,
+	/// The last three input samples, oldest first.
+	hist: [f32; 3],
 }
 
 impl Resampler {
 	pub fn new(from: u32, to: u32) -> Self {
 		Self {
 			step: from as f64 / to as f64,
-			pos: 1.0,
-			prev: 0.0,
+			pos: 3.0,
+			hist: [0.0; 3],
 		}
 	}
 
@@ -297,18 +332,24 @@ impl Resampler {
 			out.extend_from_slice(input);
 			return;
 		}
-		// v[0] is the last sample of the previous block, v[1..] is this block.
-		let mut v = Vec::with_capacity(input.len() + 1);
-		v.push(self.prev);
+		// v = the three samples from before, then this block.
+		let mut v = Vec::with_capacity(input.len() + 3);
+		v.extend_from_slice(&self.hist);
 		v.extend_from_slice(input);
-		while self.pos + 1.0 < v.len() as f64 {
+		while self.pos + 2.0 < v.len() as f64 {
 			let i = self.pos.floor() as usize;
-			let frac = (self.pos - i as f64) as f32;
-			out.push(v[i] * (1.0 - frac) + v[i + 1] * frac);
+			let t = (self.pos - i as f64) as f32;
+			let (p0, p1, p2, p3) = (v[i - 1], v[i], v[i + 1], v[i + 2]);
+			let a = -0.5 * p0 + 1.5 * p1 - 1.5 * p2 + 0.5 * p3;
+			let b = p0 - 2.5 * p1 + 2.0 * p2 - 0.5 * p3;
+			let c = -0.5 * p0 + 0.5 * p2;
+			out.push(((a * t + b) * t + c) * t + p1);
 			self.pos += self.step;
 		}
-		self.prev = v[v.len() - 1];
-		self.pos -= (v.len() - 1) as f64;
+		let n = v.len();
+		self.hist = [v[n - 3], v[n - 2], v[n - 1]];
+		// The next block starts at the kept samples, so move the position back by that much.
+		self.pos -= (n - 3) as f64;
 	}
 }
 
@@ -466,6 +507,15 @@ mod tests {
 			.unwrap();
 		assert_eq!(decoded, FRAME_SAMPLES);
 		assert!(level_db(&out) > -25.0, "decoded frame should still have energy");
+	}
+
+	#[test]
+	fn high_pass_removes_a_constant_offset() {
+		let mut hp = HighPass::new(48_000.0, 80.0);
+		let mut frame = vec![0.5f32; FRAME_SAMPLES * 50];
+		hp.apply(&mut frame);
+		let tail = &frame[frame.len() - FRAME_SAMPLES..];
+		assert!(tail.iter().all(|s| s.abs() < 0.01), "DC should fade out, got {:?}", &tail[..4]);
 	}
 
 	#[test]
