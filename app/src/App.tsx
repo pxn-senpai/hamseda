@@ -327,7 +327,7 @@ export function App() {
             setActiveId(id);
           }}
           onAdd={() => setDialog({ kind: 'connect' })}
-          dms={dms}
+          dms={dms.filter((d) => d.unread > 0)}
           onOpenDm={openDm}
         />
 
