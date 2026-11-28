@@ -341,6 +341,12 @@ export function App() {
             onSettings={() => setDialog({ kind: 'settings' })}
             onEdit={(config) => setDialog({ kind: 'connect', editing: config })}
             onRemove={(id) => remove(id)}
+            pmUnread={dms.reduce((sum, d) => sum + d.unread, 0)}
+            onOpenPrivate={() => {
+              // Open the most recent private chat; with none yet, say so.
+              if (dms.length > 0) openDm(dms[0].connId, dms[0].clientId);
+              else showToast(t('noPrivate'));
+            }}
             onRename={(name) => {
               // The new name is saved on every server and used the next time we connect.
               list.forEach((srv) => upsert({ ...srv.config, nickname: name }));

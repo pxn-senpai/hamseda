@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Copy, ImagePlus, MoreVertical, Plus, Search, Settings, Sparkles, X } from 'lucide-react';
+import { ArrowRight, Copy, ImagePlus, MessageCircle, MoreVertical, Plus, Search, Settings, Sparkles, X } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
 import { useSettings } from '../settings';
 import type { UserStatus } from '../settings';
@@ -21,6 +21,8 @@ interface Props {
   nickname: string;
   onSettings: () => void;
   onRename: (name: string) => void;
+  onOpenPrivate: () => void;
+  pmUnread: number;
 }
 
 /** Colour of the status ring and the status dot. */
@@ -266,7 +268,19 @@ function ProfilePage({
 }
 
 /** Home screen: the update notice, the list of saved servers and a link to your profile. */
-export function ServerHome({ servers, onOpen, onConnect, onAdd, onEdit, onRemove, nickname, onSettings, onRename }: Props) {
+export function ServerHome({
+  servers,
+  onOpen,
+  onConnect,
+  onAdd,
+  onEdit,
+  onRemove,
+  nickname,
+  onSettings,
+  onRename,
+  onOpenPrivate,
+  pmUnread,
+}: Props) {
   const { t } = useSettings();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -346,6 +360,10 @@ export function ServerHome({ servers, onOpen, onConnect, onAdd, onEdit, onRemove
             <button type="button" className="srv-profile-btn" onClick={() => setPage('profile')}>
               <Avatar name={nickname} size={30} />
               <span>{t('srvProfile')}</span>
+            </button>
+            <button type="button" className="srv-icon-btn" onClick={onOpenPrivate} aria-label={t('privateChats')} title={t('privateChats')}>
+              <MessageCircle size={17} />
+              {pmUnread > 0 && <span className="srv-icon-badge">{pmUnread}</span>}
             </button>
             <button type="button" className="srv-icon-btn" onClick={onSettings} aria-label={t('settings')} title={t('settings')}>
               <Settings size={17} />

@@ -2402,3 +2402,118 @@ kbd {
   height: 8px;
   border-radius: 50%;
 }
+
+.srv-icon-btn {
+  position: relative;
+}
+.srv-icon-badge {
+  position: absolute;
+  top: -5px;
+  inset-inline-end: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ff5d5d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* ---------- server cards: compact, centered, one status ring ---------- */
+.srv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+.srv-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 188px;
+  padding: 18px 14px 14px;
+  text-align: center;
+}
+.srv-card .srv-more {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 10px;
+}
+.srv-avatar-wrap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  margin: 2px auto 4px;
+  padding: 4px;
+  border: 2px solid var(--c);
+  border-radius: 24px;
+}
+.srv-avatar-wrap .srv-dot {
+  display: none;
+}
+.srv-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  background: var(--grad);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+}
+.srv-name {
+  max-width: 100%;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.srv-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.srv-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c);
+}
+.srv-card .srv-btn {
+  width: 100%;
+  margin-top: auto;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.srv-add-card {
+  min-height: 188px;
+}
+.srv-avatar-wrap {
+  box-sizing: border-box;
+  box-shadow: none;
+  background: transparent;
+  flex: none;
+}
+.srv-avatar {
+  box-sizing: border-box;
+  box-shadow: none;
+  border: 0;
+}
+.srv-card .srv-name,
+.srv-card .srv-status {
+  flex: none;
+}

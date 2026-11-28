@@ -419,23 +419,28 @@ fn open_devices(
 	let mut stereo: Vec<f32> = Vec::new();
 	let mut mono48: Vec<f32> = Vec::new();
 	let mut device_mono: Vec<f32> = Vec::new();
+	// Converted samples waiting to play. Every sample is kept and played in order, so the
+	// sound has no gaps between callbacks (dropping extra samples here made crackle).
+	let mut device_queue: std::collections::VecDeque<f32> = std::collections::VecDeque::new();
 	let output = speaker.build_output_stream(
 		out_cfg.config(),
 		move |out: &mut [f32], _: &cpal::OutputCallbackInfo| {
 			let frames = out.len() / out_channels.max(1);
-			// How many 48 kHz samples this callback needs, plus a little margin.
-			let need48 = (frames as f64 * SAMPLE_RATE as f64 / out_rate as f64).ceil() as usize + 4;
-			stereo.resize(need48 * 2, 0.0);
-			match playback.lock() {
-				Ok(mut p) => p.fill(&mut stereo),
-				Err(_) => stereo.iter_mut().for_each(|s| *s = 0.0),
+			// Pull 10 ms of 48 kHz audio at a time until the device has enough to play.
+			while device_queue.len() < frames {
+				stereo.resize(480 * 2, 0.0);
+				match playback.lock() {
+					Ok(mut p) => p.fill(&mut stereo),
+					Err(_) => stereo.iter_mut().for_each(|s| *s = 0.0),
+				}
+				mono48.clear();
+				mono48.extend(stereo.chunks_exact(2).map(|lr| (lr[0] + lr[1]) * 0.5));
+				device_mono.clear();
+				to_device.process(&mono48, &mut device_mono);
+				device_queue.extend(device_mono.iter().copied());
 			}
-			mono48.clear();
-			mono48.extend(stereo.chunks_exact(2).map(|lr| (lr[0] + lr[1]) * 0.5));
-			device_mono.clear();
-			to_device.process(&mono48, &mut device_mono);
-			for (i, frame) in out.chunks_mut(out_channels.max(1)).enumerate() {
-				let sample = device_mono.get(i).copied().unwrap_or(0.0);
+			for frame in out.chunks_mut(out_channels.max(1)) {
+				let sample = device_queue.pop_front().unwrap_or(0.0);
 				frame.iter_mut().for_each(|s| *s = sample);
 			}
 		},
