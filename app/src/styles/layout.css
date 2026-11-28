@@ -2534,3 +2534,16 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ---------- server card button: small and centered ---------- */
+.srv-card .srv-btn {
+  width: auto;
+  min-width: 96px;
+  margin-top: auto;
+  padding: 6px 16px;
+  font-size: 12px;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
